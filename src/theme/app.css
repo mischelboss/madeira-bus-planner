@@ -1,0 +1,60 @@
+/* App shell + shared layout. Component-specific rules live next to each component. */
+
+#root {
+  min-height: 100dvh;
+  background: var(--bg-page);
+  display: flex;
+  justify-content: center;
+}
+
+.app-column {
+  width: 100%;
+  max-width: var(--content-max);
+  min-height: 100dvh;
+  background: var(--bg-column);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.3);
+}
+
+.screen {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 100dvh;
+}
+
+/* generic white surface card */
+.card {
+  background: var(--surface);
+  border: 1.5px solid var(--border-card);
+  border-radius: var(--radius-card);
+}
+
+.spacer {
+  flex: 1;
+}
+
+button {
+  cursor: pointer;
+}
+button:disabled {
+  cursor: default;
+}
+
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}

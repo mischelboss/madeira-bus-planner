@@ -1,0 +1,109 @@
+.ftf {
+  position: relative;
+}
+
+.ftf-card {
+  display: flex;
+  align-items: center;
+  background: var(--surface);
+  border: 1.5px solid var(--border-field);
+  border-radius: var(--radius-card);
+  padding: 2px 8px 2px 14px;
+  transition: border-color 0.12s;
+}
+.ftf-card.is-focused {
+  border-color: var(--border-field-focus);
+}
+
+.ftf-marker {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+.ftf-marker--to {
+  color: var(--marker-dest);
+}
+.ftf-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--marker-origin);
+}
+
+.ftf-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 16px;
+  padding: 14px 8px;
+  color: var(--text-on-surface);
+}
+
+.ftf-locate {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: var(--field-fill);
+  color: oklch(35% 0.08 150);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.ftf-locate:disabled {
+  opacity: 0.6;
+}
+.spin {
+  animation: ftf-spin 0.9s linear infinite;
+}
+@keyframes ftf-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.ftf-suggest {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+  background: var(--surface);
+  border: 1px solid oklch(90% 0.01 90);
+  border-radius: var(--radius-card);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+  overflow: hidden;
+}
+.ftf-suggest-row {
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  border-bottom: 1px solid oklch(95% 0.005 90);
+  padding: 12px 16px;
+  font-size: 15px;
+  color: var(--text-on-surface);
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.ftf-suggest li:last-child .ftf-suggest-row {
+  border-bottom: none;
+}
+.ftf-suggest-row:hover,
+.ftf-suggest-row:focus-visible {
+  background: oklch(96% 0.02 150);
+}
+.ftf-suggest-name {
+  font-weight: 600;
+}
+.ftf-suggest-town {
+  font-size: 12px;
+  color: var(--text-on-surface-faint);
+}

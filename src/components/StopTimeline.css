@@ -1,0 +1,73 @@
+.timeline {
+  list-style: none;
+  margin: 0;
+  padding: 14px 16px 4px;
+  background: var(--surface-sunken);
+  border-top: 1px solid oklch(93% 0.008 90);
+}
+.timeline-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+.timeline-rail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 14px;
+}
+.timeline-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  margin-top: 3px;
+  flex-shrink: 0;
+  background: var(--timeline-through);
+}
+.timeline-dot--through {
+  background: var(--timeline-through);
+}
+.timeline-dot.op-hf {
+  background: var(--op-hf-fg);
+}
+.timeline-dot.op-rodoeste {
+  background: var(--op-rodoeste-fg);
+}
+.timeline-dot.op-cam {
+  background: var(--op-cam-fg);
+}
+.timeline-dot.op-aerobus {
+  background: var(--op-aerobus-fg);
+}
+.timeline-line {
+  width: 2px;
+  flex: 1;
+  min-height: 22px;
+  background: var(--timeline-line);
+}
+.timeline-body {
+  flex: 1;
+  padding-bottom: 14px;
+  min-width: 0;
+}
+.timeline-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+}
+.timeline-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-on-surface);
+}
+.timeline-time {
+  font-size: 13px;
+  color: var(--text-on-surface-muted);
+  font-weight: 600;
+}
+.timeline-note {
+  font-size: 12.5px;
+  color: var(--text-on-surface-faint);
+  margin-top: 2px;
+}

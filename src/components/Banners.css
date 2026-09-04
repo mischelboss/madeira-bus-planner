@@ -1,0 +1,25 @@
+.banner {
+  margin: 12px 16px 0;
+  padding: 12px 14px;
+  border-radius: var(--radius-input);
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+.banner svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.banner p {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.4;
+}
+.banner--past {
+  background: var(--banner-past-bg);
+  color: var(--banner-past-fg);
+}
+.banner--horizon {
+  background: var(--banner-horizon-bg);
+  color: var(--banner-horizon-fg);
+}

@@ -1,0 +1,23 @@
+.line-badge {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: var(--radius-badge);
+  white-space: nowrap;
+}
+.line-badge.op-hf {
+  background: var(--op-hf-bg);
+  color: var(--op-hf-fg);
+}
+.line-badge.op-rodoeste {
+  background: var(--op-rodoeste-bg);
+  color: var(--op-rodoeste-fg);
+}
+.line-badge.op-cam {
+  background: var(--op-cam-bg);
+  color: var(--op-cam-fg);
+}
+.line-badge.op-aerobus {
+  background: var(--op-aerobus-bg);
+  color: var(--op-aerobus-fg);
+}

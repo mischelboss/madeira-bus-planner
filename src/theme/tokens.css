@@ -1,0 +1,109 @@
+/* Design tokens — verbatim from the Claude Design handoff §"Design Tokens".
+   Do not tweak values without a matching design change. */
+:root {
+  /* Backgrounds */
+  --bg-page: oklch(14% 0.025 150); /* deep botanic green — outer wrapper */
+  --bg-column: oklch(24% 0.045 150); /* forest green — phone-width content column */
+  --bg-divider: oklch(30% 0.05 150);
+  --surface: #ffffff; /* cards, inputs, dropdowns */
+  --surface-sunken: oklch(98% 0.004 90); /* expanded stop-sequence background */
+  --surface-tint: oklch(95% 0.02 150); /* highlighted next-departure block */
+  --field-fill: oklch(94% 0.02 150); /* small buttons inside white cards */
+
+  /* Text */
+  --text-strong: oklch(97% 0.005 150); /* near-white headings on dark */
+  --text-muted-light: oklch(75% 0.03 150); /* muted light text on dark */
+  --text-label: oklch(80% 0.09 150); /* "MADEIRA BUSES" uppercase label */
+  --text-on-surface: oklch(20% 0.01 90); /* body text on white */
+  --text-on-surface-muted: oklch(45% 0.01 90);
+  --text-on-surface-faint: oklch(55% 0.01 90);
+  --input-placeholder: oklch(55% 0.01 90);
+
+  /* Accents */
+  --accent-cta: oklch(68% 0.19 30); /* coral — enabled Search / primary */
+  --accent-cta-disabled: oklch(40% 0.02 150);
+  --accent-later: oklch(75% 0.17 45); /* "Later" text disclosure */
+  --marker-origin: oklch(45% 0.09 150); /* From dot + focus ring */
+  --marker-dest: oklch(60% 0.15 40); /* To pin */
+  --border-field: oklch(88% 0.01 90);
+  --border-field-focus: oklch(45% 0.09 150);
+  --border-card: oklch(92% 0.008 90);
+  --timeline-line: oklch(85% 0.01 90);
+  --timeline-through: oklch(75% 0.01 90); /* grey dot at pass-through stops */
+
+  /* Banners */
+  --banner-past-bg: oklch(94% 0.03 150);
+  --banner-past-fg: oklch(30% 0.05 150);
+  --banner-horizon-bg: oklch(95% 0.04 70);
+  --banner-horizon-fg: oklch(35% 0.08 60);
+  --badge-lasttrip-bg: oklch(65% 0.16 40);
+
+  /* Operator / flower badges — bg / fg pairs.
+     Handoff gives HF pink, RODOESTE(RW) orange, SAM/CAM yellow; AEROBUS gets a
+     4th distinct botanic hue (jacaranda violet). */
+  --op-hf-bg: oklch(89% 0.13 340);
+  --op-hf-fg: oklch(36% 0.15 340);
+  --op-rodoeste-bg: oklch(88% 0.15 55);
+  --op-rodoeste-fg: oklch(38% 0.15 55);
+  --op-cam-bg: oklch(90% 0.14 100);
+  --op-cam-fg: oklch(40% 0.12 100);
+  --op-aerobus-bg: oklch(86% 0.11 300);
+  --op-aerobus-fg: oklch(38% 0.16 300);
+
+  /* Shape */
+  --radius-card: 14px;
+  --radius-input: 12px;
+  --radius-sm: 10px;
+  --radius-badge: 6px;
+
+  /* Spacing */
+  --pad-outer: 20px;
+  --pad-outer-tight: 16px;
+  --gap-card: 10px;
+  --pad-card: 14px;
+
+  /* Type */
+  --font-sans: -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif;
+
+  --content-max: 430px;
+}
+
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  margin: 0;
+}
+body {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  background: var(--bg-page);
+  color: var(--text-on-surface);
+}
+input,
+button {
+  font-family: inherit;
+}
+input::placeholder {
+  color: var(--input-placeholder);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes pulseDot {
+  0% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.5);
+  }
+  100% {
+    box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
+  }
+}

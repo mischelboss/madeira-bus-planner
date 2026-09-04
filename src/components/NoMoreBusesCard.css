@@ -1,0 +1,48 @@
+.nmb {
+  margin: 24px 16px;
+  padding: 24px 18px;
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+}
+.nmb-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: oklch(94% 0.02 150);
+  color: oklch(35% 0.08 150);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.nmb-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-on-surface);
+}
+.nmb-body {
+  margin: 0;
+  font-size: 14.5px;
+  color: var(--text-on-surface-muted);
+  line-height: 1.45;
+}
+.nmb-next {
+  margin-top: 6px;
+  padding: 14px 18px;
+  border-radius: var(--radius-input);
+  background: var(--surface-tint);
+  width: 100%;
+}
+.nmb-next-when {
+  font-size: 20px;
+  font-weight: 800;
+  color: oklch(30% 0.07 150);
+}
+.nmb-next-detail {
+  font-size: 13px;
+  color: var(--text-on-surface-muted);
+  margin-top: 2px;
+}
