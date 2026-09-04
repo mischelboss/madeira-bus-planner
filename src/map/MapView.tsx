@@ -4,6 +4,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import type { Feature, FeatureCollection, LineString } from "geojson";
 import type { Itinerary } from "../planner/types.ts";
 import { hhmm } from "../lib/format.ts";
+import { routeShape, sliceShape } from "../lib/routeShapes.ts";
 import { useLiveLocation } from "./useLiveLocation.ts";
 import "./MapView.css";
 
@@ -12,6 +13,8 @@ interface Props {
   activeIndex: number;
   onActiveIndexChange: (i: number) => void;
 }
+
+type LngLat = [number, number];
 
 const RASTER_STYLE: maplibregl.StyleSpecification = {
   version: 8,
@@ -26,17 +29,21 @@ const RASTER_STYLE: maplibregl.StyleSpecification = {
   layers: [{ id: "osm", type: "raster", source: "osm" }],
 };
 
-function legFeatures(it: Itinerary): {
-  lines: Feature[];
-  stops: Feature[];
-} {
+/** Build the line + stop features for one itinerary, using the real route shape
+ *  for each bus leg where the feed has one (straight bead-string otherwise). */
+async function legFeatures(it: Itinerary): Promise<{ lines: Feature[]; stops: Feature[] }> {
   const lines: Feature[] = [];
   const stops: Feature[] = [];
-  const allPts: [number, number][] = [];
+  const allPts: LngLat[] = [];
 
-  it.legs.forEach((leg) => {
+  for (const leg of it.legs) {
     if (leg.mode === "transit") {
-      const coords = leg.stops.map((s) => [s.stop.at.lon, s.stop.at.lat] as [number, number]);
+      const stopPts = leg.stops.map((s) => [s.stop.at.lon, s.stop.at.lat] as LngLat);
+      const shape = await routeShape(leg.route.routeId);
+      const coords =
+        shape && shape.length >= 2
+          ? sliceShape(shape, stopPts[0], stopPts[stopPts.length - 1])
+          : stopPts;
       allPts.push(...coords);
       lines.push({
         type: "Feature",
@@ -47,24 +54,26 @@ function legFeatures(it: Itinerary): {
         stops.push({
           type: "Feature",
           geometry: { type: "Point", coordinates: [s.stop.at.lon, s.stop.at.lat] },
-          properties: { kind: i === 0 || i === leg.stops.length - 1 ? "major" : "minor", name: s.stop.name },
+          properties: {
+            kind: i === 0 || i === leg.stops.length - 1 ? "major" : "minor",
+            name: s.stop.name,
+          },
         });
       });
     } else {
-      const coords = [
+      const coords: LngLat[] = [
         [leg.from.at.lon, leg.from.at.lat],
         [leg.to.at.lon, leg.to.at.lat],
-      ] as [number, number][];
+      ];
       allPts.push(...coords);
       lines.push({
         type: "Feature",
         geometry: { type: "LineString", coordinates: coords },
-        properties: { walk: true, color: "#888" },
+        properties: { walk: true, color: "#8a8a8a" },
       });
     }
-  });
+  }
 
-  // origin / destination emphasis
   if (allPts.length) {
     stops.unshift({
       type: "Feature",
@@ -78,6 +87,46 @@ function legFeatures(it: Itinerary): {
     });
   }
   return { lines, stops };
+}
+
+function drawLayers(m: maplibregl.Map) {
+  m.addLayer({
+    id: "route-transit",
+    type: "line",
+    source: "route",
+    filter: ["!", ["get", "walk"]],
+    layout: { "line-cap": "round", "line-join": "round" },
+    paint: { "line-color": ["get", "color"], "line-width": 4 },
+  });
+  m.addLayer({
+    id: "route-walk",
+    type: "line",
+    source: "route",
+    filter: ["==", ["get", "walk"], true],
+    layout: { "line-cap": "round" },
+    paint: { "line-color": "#8a8a8a", "line-width": 3, "line-dasharray": [1.6, 1.6] },
+  });
+  m.addLayer({
+    id: "stop-dots",
+    type: "circle",
+    source: "stops",
+    paint: {
+      "circle-radius": ["match", ["get", "kind"], "origin", 7, "dest", 7, "major", 5, 3],
+      "circle-color": [
+        "match",
+        ["get", "kind"],
+        "origin",
+        "#3a9a6b",
+        "dest",
+        "#e8603c",
+        "major",
+        "#3a6b52",
+        "#a9c9b8",
+      ],
+      "circle-stroke-color": "#fff",
+      "circle-stroke-width": 2,
+    },
+  });
 }
 
 export function MapView({ itineraries, activeIndex, onActiveIndexChange }: Props) {
@@ -111,59 +160,36 @@ export function MapView({ itineraries, activeIndex, onActiveIndexChange }: Props
   useEffect(() => {
     const m = map.current;
     if (!m || !active) return;
-    const { lines, stops } = legFeatures(active);
+    let cancelled = false;
 
-    const apply = () => {
-      const lineData: FeatureCollection = { type: "FeatureCollection", features: lines };
-      const stopData: FeatureCollection = { type: "FeatureCollection", features: stops };
-      if (m.getSource("route")) {
-        (m.getSource("route") as maplibregl.GeoJSONSource).setData(lineData);
-        (m.getSource("stops") as maplibregl.GeoJSONSource).setData(stopData);
-      } else {
-        m.addSource("route", { type: "geojson", data: lineData });
-        m.addSource("stops", { type: "geojson", data: stopData });
-        m.addLayer({
-          id: "route-line",
-          type: "line",
-          source: "route",
-          layout: { "line-cap": "round", "line-join": "round" },
-          paint: {
-            "line-color": ["case", ["get", "walk"], "#8a8a8a", ["get", "color"]],
-            "line-width": 4,
-            "line-dasharray": ["case", ["get", "walk"], ["literal", [1, 1.6]], ["literal", [1, 0]]],
-          },
-        });
-        m.addLayer({
-          id: "stop-dots",
-          type: "circle",
-          source: "stops",
-          paint: {
-            "circle-radius": ["match", ["get", "kind"], "origin", 7, "dest", 7, "major", 5, 3],
-            "circle-color": [
-              "match",
-              ["get", "kind"],
-              "origin",
-              "#3a9a6b",
-              "dest",
-              "#e8603c",
-              "major",
-              "#3a6b52",
-              "#a9c9b8",
-            ],
-            "circle-stroke-color": "#fff",
-            "circle-stroke-width": 2,
-          },
-        });
-      }
-      const b = new maplibregl.LngLatBounds();
-      lines.forEach((f) =>
-        (f.geometry as LineString).coordinates.forEach((c) => b.extend(c as [number, number])),
-      );
-      if (!b.isEmpty()) m.fitBounds(b, { padding: 36, duration: 300 });
+    legFeatures(active).then(({ lines, stops }) => {
+      if (cancelled || map.current !== m) return;
+
+      const apply = () => {
+        const lineData: FeatureCollection = { type: "FeatureCollection", features: lines };
+        const stopData: FeatureCollection = { type: "FeatureCollection", features: stops };
+        if (m.getSource("route")) {
+          (m.getSource("route") as maplibregl.GeoJSONSource).setData(lineData);
+          (m.getSource("stops") as maplibregl.GeoJSONSource).setData(stopData);
+        } else {
+          m.addSource("route", { type: "geojson", data: lineData });
+          m.addSource("stops", { type: "geojson", data: stopData });
+          drawLayers(m);
+        }
+        const b = new maplibregl.LngLatBounds();
+        lines.forEach((f) =>
+          (f.geometry as LineString).coordinates.forEach((c) => b.extend(c as LngLat)),
+        );
+        if (!b.isEmpty()) m.fitBounds(b, { padding: 36, duration: 300 });
+      };
+
+      if (m.isStyleLoaded()) apply();
+      else m.once("load", apply);
+    });
+
+    return () => {
+      cancelled = true;
     };
-
-    if (m.isStyleLoaded()) apply();
-    else m.once("load", apply);
   }, [active]);
 
   // live "you are here"

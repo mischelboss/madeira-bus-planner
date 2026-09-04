@@ -103,7 +103,11 @@ export function RouteDetailScreen({ routeId }: { routeId: string }) {
         </div>
       ) : (
         <Suspense fallback={<p className="rd-status">Loading map…</p>}>
-          <RouteMap stops={route.stops} color={OPERATOR_LINE_COLOR[route.operator]} />
+          <RouteMap
+            routeId={route.routeId}
+            stops={route.stops}
+            color={OPERATOR_LINE_COLOR[route.operator]}
+          />
         </Suspense>
       )}
     </div>
