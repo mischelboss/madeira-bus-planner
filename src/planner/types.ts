@@ -131,6 +131,8 @@ export interface NextDeparture {
 export interface PlanFlags {
   dateAdjustedFromPast: boolean;
   beyondPublishedHorizon: boolean;
+  /** the feed doesn't start until later — search was clamped to its first day */
+  beforePublishedHorizon?: boolean;
   noMoreServiceToday: boolean;
 }
 
@@ -142,6 +144,8 @@ export interface PlanResult {
   adjustedTo?: string;
   /** always present — feed_end_date, "YYYY-MM-DD" */
   horizonEndDate: string;
+  /** always present — feed_start_date, "YYYY-MM-DD" */
+  horizonStartDate: string;
   /** present iff `flags.noMoreServiceToday` and service resumes within the horizon */
   nextDeparture?: NextDeparture | null;
   outcome: PlanOutcome;
@@ -168,4 +172,6 @@ export interface TripPlanner {
   readonly feedVersion: string;
   /** "YYYY-MM-DD" */
   readonly horizonEndDate: string;
+  /** "YYYY-MM-DD" */
+  readonly horizonStartDate: string;
 }

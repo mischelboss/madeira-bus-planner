@@ -84,6 +84,36 @@ describe("LocalPlanner (real data)", () => {
     }
   });
 
+  it("never returns a blank result for a connected pair, even before the feed starts", async () => {
+    const { LocalPlanner } = await import("./LocalPlanner.ts");
+    const stops = readJson("stops.json") as { stopId: string; name: string }[];
+    const meta = readJson("meta.json");
+    const from = stops.find((s) => s.name.includes("AV Mar") && s.name.includes("E E M"))!;
+    const to = stops.find((s) => s.name.startsWith("Ilma"))!;
+    expect(from && to).toBeTruthy();
+
+    const p = new LocalPlanner();
+    await p.ready();
+    // "leave now" — depending on the calendar this is before, on, or after the
+    // feed's first day; a connected pair must yield trips or a next departure
+    // regardless (the bug was a silently blank Results screen before feed start).
+    const res = await p.plan({
+      from: { kind: "stop", stopId: from.stopId },
+      to: { kind: "stop", stopId: to.stopId },
+    });
+
+    expect(res.horizonStartDate).toBe(meta.feedStartDate);
+    expect(res.itineraries.length > 0 || !!res.nextDeparture).toBe(true);
+
+    if (res.flags.beforePublishedHorizon) {
+      expect(res.outcome).toBe("ok");
+      const it = res.itineraries[0];
+      expect(it.departAt.slice(0, 10)).toBe(meta.feedStartDate);
+      expect(it.durationSeconds).toBeGreaterThan(0);
+      expect(it.durationSeconds).toBeLessThan(3 * 3600); // not "midnight → arrival"
+    }
+  });
+
   it("flags a date beyond the published horizon", async () => {
     const { LocalPlanner } = await import("./LocalPlanner.ts");
     const stops = readJson("stops.json") as { stopId: string; name: string }[];

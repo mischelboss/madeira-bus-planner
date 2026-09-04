@@ -43,6 +43,7 @@ describe("App end-to-end (fake planner)", () => {
       itineraries: [],
       flags: { dateAdjustedFromPast: false, beyondPublishedHorizon: false, noMoreServiceToday: true },
       horizonEndDate: "2027-06-30",
+      horizonStartDate: "2026-09-08",
       nextDeparture: { departAt: "2026-09-09T08:05:00+01:00", itinerary: makeItinerary() },
       outcome: "ok",
       query: { from: { kind: "stop", stopId: "s1" }, to: { kind: "stop", stopId: "s3" }, effectiveDepartAt: "2026-09-08T23:00:00+01:00" },

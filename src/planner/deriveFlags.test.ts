@@ -82,6 +82,29 @@ describe("deriveFlags", () => {
     expect(d.flags.beyondPublishedHorizon).toBe(true);
   });
 
+  it("passes through beforePublishedHorizon", () => {
+    const d = deriveFlags(
+      {
+        itineraries: [itin("2026-09-08T06:00:00", "2026-09-08T06:30:00")],
+        nextDeparture: null,
+        effectiveEpochSec: adjusted.effectiveEpochSec,
+        beforePublishedHorizon: true,
+      },
+      ctx,
+      adjusted,
+    );
+    expect(d.flags.beforePublishedHorizon).toBe(true);
+  });
+
+  it("defaults beforePublishedHorizon to false", () => {
+    const d = deriveFlags(
+      { itineraries: [], nextDeparture: null, effectiveEpochSec: adjusted.effectiveEpochSec },
+      ctx,
+      adjusted,
+    );
+    expect(d.flags.beforePublishedHorizon).toBe(false);
+  });
+
   it("reports noServiceInHorizon when there is no path at all", () => {
     const d = deriveFlags(
       { itineraries: [], nextDeparture: null, effectiveEpochSec: adjusted.effectiveEpochSec },

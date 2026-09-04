@@ -13,6 +13,18 @@ export function PastDateBanner() {
   );
 }
 
+export function BeforeHorizonBanner({ horizonStartDate }: { horizonStartDate: string }) {
+  return (
+    <div className="banner banner--past">
+      <ClockIcon size={17} />
+      <p>
+        Bus timetables start on <strong>{humanDate(horizonStartDate)}</strong>. Showing the first
+        available departures.
+      </p>
+    </div>
+  );
+}
+
 export function HorizonBanner({ horizonEndDate }: { horizonEndDate: string }) {
   return (
     <div className="banner banner--horizon">

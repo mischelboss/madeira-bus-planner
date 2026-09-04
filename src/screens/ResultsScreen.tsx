@@ -3,7 +3,7 @@ import { usePlanner } from "../planner/index.ts";
 import type { PlanResult } from "../planner/types.ts";
 import { useSearchState } from "../state/search.ts";
 import { BackIcon } from "../components/icons.tsx";
-import { PastDateBanner, HorizonBanner } from "../components/Banners.tsx";
+import { PastDateBanner, HorizonBanner, BeforeHorizonBanner } from "../components/Banners.tsx";
 import { NoMoreBusesCard } from "../components/NoMoreBusesCard.tsx";
 import { ItineraryCard } from "../components/ItineraryCard.tsx";
 import { hhmm } from "../lib/format.ts";
@@ -74,6 +74,9 @@ export function ResultsScreen() {
       {result && (
         <>
           {result.flags.dateAdjustedFromPast && <PastDateBanner />}
+          {result.flags.beforePublishedHorizon && (
+            <BeforeHorizonBanner horizonStartDate={result.horizonStartDate} />
+          )}
           {result.flags.beyondPublishedHorizon && (
             <HorizonBanner horizonEndDate={result.horizonEndDate} />
           )}
@@ -96,6 +99,12 @@ export function ResultsScreen() {
           )}
           {result.outcome === "no_route" && !result.flags.noMoreServiceToday && (
             <div className="results-status">No bus route connects these two places.</div>
+          )}
+          {result.outcome === "no_service_in_horizon" && !result.flags.noMoreServiceToday && (
+            <div className="results-status">
+              No bus service runs between these stops within the published timetable
+              (through {result.horizonEndDate}).
+            </div>
           )}
 
           {showList && (
