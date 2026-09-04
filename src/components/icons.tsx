@@ -46,6 +46,25 @@ export const WarningIcon = ({ size = 17, className }: P) => (
   </svg>
 );
 
+export const SearchIcon = ({ size = 20, className }: P) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className}>
+    <circle cx="11" cy="11" r="7" />
+    <path d="M21 21l-4.3-4.3" />
+  </svg>
+);
+
+export const ListIcon = ({ size = 20, className }: P) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className}>
+    <path d="M4 6h16M4 12h16M4 18h10" />
+  </svg>
+);
+
+export const ChevronRightIcon = ({ size = 16, className }: P) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" className={className}>
+    <path d="M9 6l6 6-6 6" />
+  </svg>
+);
+
 export const WalkIcon = ({ size = 12, className }: P) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" className={className}>
     <path d="M4 8h4M11 8h4M18 8h2" />

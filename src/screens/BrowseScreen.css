@@ -1,0 +1,113 @@
+.browse-head {
+  padding: 20px 20px 8px;
+}
+.browse-eyebrow {
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-label);
+  font-weight: 600;
+}
+.browse-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-strong);
+  margin: 4px 0 0;
+}
+
+.browse-filter {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0 20px 12px;
+  padding: 2px 14px;
+  background: var(--surface);
+  border-radius: var(--radius-card);
+  color: var(--text-on-surface-faint);
+}
+.browse-filter input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 15px;
+  padding: 12px 10px;
+  color: var(--text-on-surface);
+}
+
+.browse-tabs {
+  display: flex;
+  gap: 6px;
+  margin: 0 20px 12px;
+  padding: 4px;
+  background: var(--bg-divider);
+  border-radius: var(--radius-input);
+}
+.browse-tabs button {
+  flex: 1;
+  padding: 9px;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  color: oklch(85% 0.02 150);
+  font-size: 13.5px;
+  font-weight: 700;
+}
+.browse-tabs button.is-active {
+  background: var(--surface);
+  color: var(--text-on-surface);
+}
+
+.browse-body {
+  flex: 1;
+  padding: 0 20px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-card);
+}
+.browse-count,
+.browse-status {
+  font-size: 12.5px;
+  color: var(--text-muted-light);
+  margin: 2px 2px 0;
+}
+.browse-status {
+  font-size: 14px;
+  padding: 8px 2px;
+}
+
+.browse-region-head {
+  width: 100%;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 10px 2px;
+  background: none;
+  border: none;
+  color: var(--text-strong);
+  text-align: left;
+}
+.browse-region-name {
+  font-size: 15px;
+  font-weight: 700;
+}
+.browse-region-count {
+  font-size: 12px;
+  color: var(--text-muted-light);
+  flex: 1;
+}
+.browse-region-head svg {
+  color: var(--text-muted-light);
+  transition: transform 0.15s;
+  align-self: center;
+}
+.browse-region-head .chev-open {
+  transform: rotate(180deg);
+}
+.browse-region-routes {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-bottom: 10px;
+  animation: fadeIn 0.15s ease-out;
+}

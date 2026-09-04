@@ -41,3 +41,19 @@ export const OPERATOR_CLASS: Record<OperatorId, string> = {
   CAM: "op-cam",
   AEROBUS: "op-aerobus",
 };
+
+/** Terse operator code for line badges — keeps the pill small. */
+export const OPERATOR_SHORT: Record<OperatorId, string> = {
+  HF: "HF",
+  RODOESTE: "ROD",
+  CAM: "CAM",
+  AEROBUS: "AERO",
+};
+
+/** Map polyline colour per operator — roughly the flower accent, opaque. */
+export const OPERATOR_LINE_COLOR: Record<OperatorId, string> = {
+  HF: "#b83f8f",
+  RODOESTE: "#c25e00",
+  CAM: "#8a7a00",
+  AEROBUS: "#7a4fd0",
+};

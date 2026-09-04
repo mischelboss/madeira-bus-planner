@@ -6,6 +6,11 @@ itineraries with transfers and walking legs, expand any result to its stop
 sequence, flip to a map with live location. Free, no accounts, works offline
 after first load.
 
+Two tabs: **Search** (the journey planner + results) and **Browse** (the whole
+route network — routes grouped by region, a live filter matching line numbers
+and place names, and a per-route detail screen with weekday/weekend service
+hours, the full stop list, and a route map).
+
 Consumes the GTFS feed produced by
 [`madeira-gtfs`](https://github.com/mischelboss/madeira-gtfs).
 
@@ -22,6 +27,11 @@ Consumes the GTFS feed produced by
   (`src/planner/deriveFlags.ts`), shared with any future server.
 - Stop → town names come from a one-time Nominatim reverse-geocode cached in
   `data/geocode-cache.json`.
+- **Browse data** (`public/data/browse.json`) — route catalogue for the Browse
+  tab: each route's fullest stop pattern, weekday/weekend hours + typical
+  headway (sampled over the whole horizon), and a region grouping derived from
+  the reverse-geocoded municipality of each route's outer endpoint. Off the
+  `TripPlanner` interface — it's reference data, not trip planning.
 
 ## Develop
 
