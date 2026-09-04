@@ -22,7 +22,9 @@
   display: flex;
   flex-direction: column;
   flex: 1;
-  min-height: 100dvh;
+  /* fills .app-column (which is min-height:100dvh); no own 100dvh, so a sticky
+     bottom tab bar doesn't push the column past one viewport */
+  min-height: 0;
 }
 
 /* generic white surface card */

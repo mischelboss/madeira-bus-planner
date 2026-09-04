@@ -1,8 +1,6 @@
 import MiniSearch from "minisearch";
 import type { Stop } from "../planner/types.ts";
-
-const stripAccents = (s: string) =>
-  s.normalize("NFKD").replace(/[̀-ͯ]/g, "");
+import { stripAccents } from "./text.ts";
 
 export interface StopSuggestion {
   stop: Stop;
