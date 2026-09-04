@@ -1,10 +1,11 @@
 import MiniSearch from "minisearch";
 import type { Stop } from "../planner/types.ts";
 import { stripAccents } from "./text.ts";
+import { stopLabel } from "./stopNames.ts";
 
 export interface StopSuggestion {
   stop: Stop;
-  /** display name — the operator's verbatim name */
+  /** what to show the rider — readable form where we have one, else the sign */
   name: string;
   /** muted secondary line — town / parish */
   town: string;
@@ -13,7 +14,7 @@ export interface StopSuggestion {
 export function buildStopIndex(stops: Stop[]): MiniSearch<Stop & { plain: string }> {
   const idx = new MiniSearch<Stop & { plain: string }>({
     idField: "stopId",
-    fields: ["name", "town", "code", "plain"],
+    fields: ["name", "displayName", "town", "code", "plain"],
     searchOptions: {
       prefix: true,
       fuzzy: 0.15,
@@ -26,7 +27,8 @@ export function buildStopIndex(stops: Stop[]): MiniSearch<Stop & { plain: string
       ...s,
       town: s.town ?? "",
       code: s.code ?? "",
-      plain: stripAccents(`${s.name} ${s.town ?? ""}`),
+      displayName: s.displayName ?? "",
+      plain: stripAccents(`${s.name} ${s.displayName ?? ""} ${s.town ?? ""}`),
     })),
   );
   return idx;
@@ -45,9 +47,13 @@ export function searchStops(
   const seen = new Set<string>();
   for (const h of hits) {
     const stop = stopsById.get(String(h.id));
-    if (!stop || seen.has(stop.stopId)) continue;
-    seen.add(stop.stopId);
-    out.push({ stop, name: stop.name, town: stop.town ?? "" });
+    if (!stop) continue;
+    // one entry per physical stop — the HF feed lists some as several poles
+    // a few metres apart, all with the same name and code
+    const groupKey = stop.groupId ?? stop.stopId;
+    if (seen.has(groupKey)) continue;
+    seen.add(groupKey);
+    out.push({ stop, name: stopLabel(stop), town: stop.town ?? "" });
     if (out.length >= limit) break;
   }
   return out;

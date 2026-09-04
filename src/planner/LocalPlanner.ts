@@ -143,7 +143,10 @@ export class LocalPlanner implements TripPlanner {
       const idx = this.stopIdxById.get(ref.stopId);
       if (idx === undefined) return null;
       const s = this.stops[idx];
-      return { anchors: [{ stopIdx: idx, walkSec: 0 }], point: { stopId: s.stopId, name: s.name, town: s.town, at: s.at } };
+      return {
+        anchors: [{ stopIdx: idx, walkSec: 0 }],
+        point: { stopId: s.stopId, name: s.name, displayName: s.displayName, town: s.town, at: s.at },
+      };
     }
     const scored = this.stops
       .map((stop, idx) => ({ idx, stop, meters: haversine(ref.at, stop.at) }))
@@ -323,7 +326,7 @@ export class LocalPlanner implements TripPlanner {
       return { stopId: "@point", name: fallback.label, at: fallback.at };
     }
     const s = this.stops[stopIdx];
-    return { stopId: s.stopId, name: s.name, town: s.town, at: s.at };
+    return { stopId: s.stopId, name: s.name, displayName: s.displayName, town: s.town, at: s.at };
   }
 
   private hydrateLeg(

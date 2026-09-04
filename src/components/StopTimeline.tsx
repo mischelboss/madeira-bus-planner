@@ -1,5 +1,6 @@
 import type { Itinerary, Leg } from "../planner/types.ts";
 import { hhmm, OPERATOR_CLASS } from "../lib/format.ts";
+import { stopLabel } from "../lib/stopNames.ts";
 import "./StopTimeline.css";
 
 interface Row {
@@ -18,7 +19,7 @@ function toRows(it: Itinerary): Row[] {
       // fold the walk into a note on the following boarding row, or a standalone row if trailing
       if (i === it.legs.length - 1) {
         rows.push({
-          name: leg.to.name,
+          name: stopLabel(leg.to),
           time: hhmm(leg.arriveAt),
           note: `${leg.summary} to arrive`,
           dot: "endpoint",
@@ -37,7 +38,7 @@ function toRows(it: Itinerary): Row[] {
       const prevWalk = it.legs[i - 1];
       if (first && prevWalk?.mode === "walk") note = prevWalk.summary;
       rows.push({
-        name: st.stop.name,
+        name: stopLabel(st.stop),
         time: hhmm(st.arriveAt),
         note,
         dot: endpoint ? "endpoint" : first || last ? "transfer" : "through",
