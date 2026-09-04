@@ -16,11 +16,18 @@ export default defineConfig({
         // the routing blob is ~1.3 MB — precache it so repeat / offline use is instant
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
         globPatterns: ["**/*.{js,css,html,json}", "data/timetable.bin.gz"],
+        // shapes.json is ~4 MB and only the map needs it — cache it on first use
+        globIgnores: ["**/data/shapes.json"],
         runtimeCaching: [
           {
             urlPattern: ({ url }) => url.pathname.includes("tile.openstreetmap.org"),
             handler: "CacheFirst",
             options: { cacheName: "osm-tiles", expiration: { maxEntries: 400, maxAgeSeconds: 604800 } },
+          },
+          {
+            urlPattern: ({ url }) => url.pathname.endsWith("/data/shapes.json"),
+            handler: "StaleWhileRevalidate",
+            options: { cacheName: "route-shapes", expiration: { maxEntries: 2, maxAgeSeconds: 604800 } },
           },
         ],
       },
