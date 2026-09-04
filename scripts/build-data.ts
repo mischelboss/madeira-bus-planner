@@ -21,6 +21,7 @@ import {
   type Row,
 } from "./lib/gtfs.ts";
 import { haversineMeters } from "./lib/geo.ts";
+import { readableStopName } from "../src/lib/stopNames.ts";
 import {
   encodeTimetable,
   epochDayFromISO,
@@ -39,6 +40,8 @@ const FOOT_CLOSURE_M = 400;
 const WALK_MPS = 1.1;
 const DETOUR = 1.3;
 const MIN_WALK_S = 60;
+// poles of one physical stop sit within this of each other
+const STOP_GROUP_M = 60;
 
 const OPERATORS = ["HF", "RODOESTE", "CAM", "AEROBUS"] as const;
 type OperatorId = (typeof OPERATORS)[number];
@@ -152,20 +155,65 @@ async function main() {
   stopRows.forEach((s, i) => stopIdx.set(s.stop_id, i));
   const nStops = stopRows.length;
 
-  const geocode: Record<string, { town?: string; address?: Record<string, string> }> =
-    existsSync(GEOCODE_CACHE) ? JSON.parse(readFileSync(GEOCODE_CACHE, "utf8")) : {};
+  const geocode: Record<
+    string,
+    { town?: string; road?: string; address?: Record<string, string> }
+  > = existsSync(GEOCODE_CACHE) ? JSON.parse(readFileSync(GEOCODE_CACHE, "utf8")) : {};
   let missingTowns = 0;
+  let codeStripped = 0;
+  let streetNamed = 0;
   const stopsJson = stopRows.map((s) => {
     const key = geoKey(s.stop_id, +s.stop_lat, +s.stop_lon);
     const town = geocode[key]?.town;
     if (!town) missingTowns++;
+    // the operator's name is what's on the sign; displayName only differs
+    // where the OSM street corroborates it (see src/lib/stopNames.ts)
+    const road = geocode[key]?.road;
+    const displayName = readableStopName(s.stop_name, road, s.stop_code);
+    const withoutStreet = readableStopName(s.stop_name, undefined, s.stop_code);
+    if (displayName !== withoutStreet) streetNamed++;
+    else if (displayName !== s.stop_name) codeStripped++;
     return {
       stopId: s.stop_id,
       name: s.stop_name,
+      ...(displayName !== s.stop_name ? { displayName } : {}),
       ...(town ? { town } : {}),
       ...(s.stop_code ? { code: s.stop_code } : {}),
       at: { lat: round6(+s.stop_lat), lon: round6(+s.stop_lon) },
     };
+  });
+
+  // ---- group the poles of one physical stop ----
+  // The HF feed splits some stops into several rows a few metres apart,
+  // sharing a stop_code and a name ("AV Mar  E E M (11)" x3, 15-30 m apart).
+  // They're separate boarding points, so routing keeps them separate; it's
+  // only autocomplete that shouldn't offer the same stop three times.
+  const groupOf = new Uint32Array(nStops);
+  groupOf.forEach((_, i) => (groupOf[i] = i));
+  const findGroup = (i: number): number => {
+    while (groupOf[i] !== i) i = groupOf[i] = groupOf[groupOf[i]];
+    return i;
+  };
+  const sameStopKey = (i: number) => {
+    const s = stopsJson[i];
+    return s.code ? `code:${s.code}` : `name:${s.name.trim().toLowerCase()}`;
+  };
+  for (let i = 0; i < nStops; i++) {
+    for (let j = i + 1; j < nStops; j++) {
+      if (sameStopKey(i) !== sameStopKey(j)) continue;
+      const a = stopsJson[i].at;
+      const b = stopsJson[j].at;
+      if (haversineMeters(a.lat, a.lon, b.lat, b.lon) > STOP_GROUP_M) continue;
+      const [ra, rb] = [findGroup(i), findGroup(j)];
+      if (ra !== rb) groupOf[Math.max(ra, rb)] = Math.min(ra, rb);
+    }
+  }
+  let grouped = 0;
+  const stopsOut = stopsJson.map((s, i) => {
+    const root = findGroup(i);
+    if (root === i) return s;
+    grouped++;
+    return { ...s, groupId: stopsJson[root].stopId };
   });
 
   // ---- dense route index ----
@@ -630,7 +678,7 @@ async function main() {
   });
   writeFileSync(resolve(OUT, "timetable.bin.gz"), gzipSync(Buffer.from(bin), { level: 9 }));
 
-  writeJson("stops.json", stopsJson);
+  writeJson("stops.json", stopsOut);
   writeJson("routes.json", routesJson);
   writeJson("agencies.json", agenciesJson);
   writeJson("headsigns.json", headsigns);
@@ -662,6 +710,9 @@ async function main() {
       `timetable.bin.gz ${(bin.byteLength / 1e6).toFixed(2)} MB raw`,
       `towns: ${nStops - missingTowns}/${nStops} geocoded` +
         (missingTowns ? `  (run: npm run geocode)` : ""),
+      `names: ${streetNamed} from OSM streets, ${codeStripped} code-stripped` +
+        (streetNamed ? "" : `  (run: npm run geocode -- --roads)`),
+      `grouped poles: ${grouped} stops folded into a neighbour`,
       `shaped routes ${Object.values(routeShapeId).filter(Boolean).length}/${nRoutes}`,
       `browse: ${Object.keys(browseJson.routes).length} routes, ` +
         `${browseJson.regions.length} regions, ${browseJson.interregionalRouteIds.length} interregional`,

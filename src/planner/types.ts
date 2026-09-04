@@ -46,6 +46,10 @@ export interface Stop {
   stopId: string;
   /** verbatim operator name — what's on the sign */
   name: string;
+  /** readable form, where an OSM street corroborated it (src/lib/stopNames.ts) */
+  displayName?: string;
+  /** set when this is another pole of a stop listed under `groupId` */
+  groupId?: string;
   /** reverse-geocoded town/parish, for disambiguation */
   town?: string;
   /** HF rider-facing stop_code only */
@@ -56,6 +60,7 @@ export interface Stop {
 export interface StopPoint {
   stopId: string;
   name: string;
+  displayName?: string;
   town?: string;
   at: LatLon;
 }

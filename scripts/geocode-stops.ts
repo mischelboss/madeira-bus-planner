@@ -5,13 +5,20 @@
  *
  *   npm run geocode                 # fill gaps from the snapshot feed
  *   npm run geocode -- --refresh    # also re-fetch entries older than 180 days
+ *   npm run geocode -- --roads      # second pass: the street each stop is on
+ *
+ * The town pass queries at zoom 14, which resolves to a parish and carries no
+ * street. `--roads` re-queries at zoom 17, where `address.road` is the street
+ * the stop actually stands on — "AV Mar  E E M (11)" sits on "Avenida do Mar e
+ * das Comunidades Madeirenses". That is what makes a readable display name
+ * possible without anyone inventing one (see build-data.ts's displayName).
  *
  * Mirrors madeira-gtfs/scripts/geocode_stops.py conventions.
  */
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { readGtfsZip } from "./lib/gtfs.ts";
+import { readGtfsZip, type Row } from "./lib/gtfs.ts";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const SNAPSHOT = resolve(ROOT, "data/feed-snapshot/latest.zip");
@@ -27,6 +34,8 @@ const TOWN_OVERRIDES: Record<string, string> = {};
 
 interface Entry {
   town?: string;
+  /** street the stop stands on, from the zoom-17 pass (`--roads`) */
+  road?: string;
   admin?: string;
   address?: Record<string, string>;
   displayName?: string;
@@ -72,6 +81,48 @@ async function reverse(lat: number, lon: number, attempt = 0): Promise<Entry> {
   }
 }
 
+/** Zoom 17 resolves to the street rather than the parish. */
+async function reverseRoad(lat: number, lon: number, attempt = 0): Promise<string | undefined> {
+  const url = `${ENDPOINT}?format=jsonv2&lat=${lat}&lon=${lon}&zoom=17&accept-language=pt&addressdetails=1`;
+  try {
+    const res = await fetch(url, { headers: { "User-Agent": UA } });
+    if (res.status === 429 || res.status >= 500) throw new Error(`status ${res.status}`);
+    const j = (await res.json()) as { address?: Record<string, string> };
+    return j.address?.road;
+  } catch (e) {
+    if (attempt >= 3) throw e;
+    await sleep(2000 * (attempt + 1));
+    return reverseRoad(lat, lon, attempt + 1);
+  }
+}
+
+async function roadPass(stops: Row[], cache: Record<string, Entry>): Promise<void> {
+  const todo = stops.filter((s) => {
+    const hit = cache[key(s.stop_id, +s.stop_lat, +s.stop_lon)];
+    return !hit || hit.road === undefined;
+  });
+  console.log(`roads: ${stops.length - todo.length} cached · ${todo.length} to fetch`);
+  if (todo.length === 0) return;
+  console.log(`~${Math.round((todo.length * SPACING_MS) / 60000)} min at ${SPACING_MS} ms/request\n`);
+
+  let done = 0;
+  for (const s of todo) {
+    const k = key(s.stop_id, +s.stop_lat, +s.stop_lon);
+    const road = await reverseRoad(+s.stop_lat, +s.stop_lon);
+    // "" records "asked, no road here" so a re-run doesn't retry forever
+    cache[k] = { ...(cache[k] ?? { fetchedAt: new Date().toISOString() }), road: road ?? "" };
+    done++;
+    if (done % 25 === 0 || done === todo.length) {
+      save(cache);
+      console.log(`  ${done}/${todo.length}  (last: ${s.stop_name} -> ${road ?? "?"})`);
+    }
+    await sleep(SPACING_MS);
+  }
+  save(cache);
+  const withRoad = Object.values(cache).filter((e) => e.road).length;
+  console.log(`\nroads done. ${withRoad}/${Object.keys(cache).length} entries have a street.`);
+}
+
 async function main() {
   const refresh = process.argv.includes("--refresh");
   const zipPath = process.argv.includes("--url")
@@ -84,6 +135,11 @@ async function main() {
   const cache: Record<string, Entry> = existsSync(CACHE)
     ? JSON.parse(readFileSync(CACHE, "utf8"))
     : {};
+
+  if (process.argv.includes("--roads")) {
+    await roadPass(stops, cache);
+    return;
+  }
 
   const cutoff = Date.now() - REFRESH_DAYS * 86_400_000;
   const todo = stops.filter((s) => {
