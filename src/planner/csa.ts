@@ -433,7 +433,9 @@ function dominated(j: RawItinerary, kept: RawItinerary[]): boolean {
 /** Decompress + decode. `gzBytes` is the raw content of `timetable.bin.gz`. */
 export async function loadTimetable(gzBytes: ArrayBuffer): Promise<Timetable> {
   const ds = new DecompressionStream("gzip");
-  const stream = new Blob([gzBytes]).stream().pipeThrough(ds);
-  const buf = await new Response(stream).arrayBuffer();
+  const writer = ds.writable.getWriter();
+  void writer.write(new Uint8Array(gzBytes));
+  void writer.close();
+  const buf = await new Response(ds.readable).arrayBuffer();
   return decodeTimetable(buf);
 }

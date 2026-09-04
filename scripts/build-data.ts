@@ -165,8 +165,7 @@ async function main() {
       name: s.stop_name,
       ...(town ? { town } : {}),
       ...(s.stop_code ? { code: s.stop_code } : {}),
-      lat: round6(+s.stop_lat),
-      lon: round6(+s.stop_lon),
+      at: { lat: round6(+s.stop_lat), lon: round6(+s.stop_lon) },
     };
   });
 
@@ -334,7 +333,7 @@ async function main() {
     const s = stopsJson[i];
     for (let j = i + 1; j < nStops; j++) {
       const t = stopsJson[j];
-      const d = haversineMeters(s.lat, s.lon, t.lat, t.lon);
+      const d = haversineMeters(s.at.lat, s.at.lon, t.at.lat, t.at.lon);
       if (d <= FOOT_THRESHOLD_M) {
         const w = Math.max(MIN_WALK_S, Math.round((d * DETOUR) / WALK_MPS));
         adj150[i].push({ to: j, walk: w });
@@ -413,8 +412,8 @@ async function main() {
     tDirection,
     tHeadsign,
     serviceActive,
-    sLat: Float32Array.from(stopsJson.map((s) => s.lat)),
-    sLon: Float32Array.from(stopsJson.map((s) => s.lon)),
+    sLat: Float32Array.from(stopsJson.map((s) => s.at.lat)),
+    sLon: Float32Array.from(stopsJson.map((s) => s.at.lon)),
     footOffset,
     footTarget: Uint16Array.from(footTarget),
     footWalk: Uint16Array.from(footWalk),
