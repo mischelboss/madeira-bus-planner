@@ -389,16 +389,19 @@ async function main() {
   // asks for. The prototype hardcoded 4 sample clusters; this derives them from
   // the reverse-geocoded municipality of each route's two endpoints.
   //
-  // The network is radial — almost every route touches Funchal — so a route is
-  // filed under the region of its *outermost* endpoint (Funchal & Câmara de
-  // Lobos being the hub region). A route that links two different outer regions
-  // without a hub endpoint is "interregional".
+  // A route is Regional only when *both* endpoints sit in the same cluster;
+  // anything crossing a boundary is Interregional. Funchal is its own cluster
+  // rather than being paired with Câmara de Lobos, so a Funchal city line stays
+  // regional while Funchal↔Porto Moniz (380/381) reads as interregional, which
+  // is what a rider would expect. The network is radial, so Interregional is
+  // the larger list here — that's the shape of the network, not a bug.
   const MUNI_FIX: Record<string, string> = {
     Caniço: "Santa Cruz",
     "Curral das Freiras": "Câmara de Lobos",
   };
   const REGION_DEFS: { id: string; name: string; munis: string[] }[] = [
-    { id: "funchal", name: "Funchal & Around", munis: ["Funchal", "Câmara de Lobos"] },
+    { id: "funchal", name: "Funchal", munis: ["Funchal"] },
+    { id: "camara", name: "Câmara de Lobos", munis: ["Câmara de Lobos"] },
     {
       id: "west",
       name: "West Coast",
@@ -565,14 +568,10 @@ async function main() {
       weekend: serviceWindow(tripIdxs, true),
     };
 
-    const ends = [originStop, destStop].map((s) =>
+    const [ro, rd] = [originStop, destStop].map((s) =>
       regionOfMuni.get(municipalityOf(s.stop_id, +s.stop_lat, +s.stop_lon) ?? ""),
     );
-    const outer = [...new Set(ends.filter((r) => r && r !== "funchal"))];
-    routeRegion.set(
-      route.routeId,
-      outer.length === 0 ? "funchal" : outer.length === 1 ? outer[0]! : null,
-    );
+    routeRegion.set(route.routeId, ro && ro === rd ? ro : null);
   }
 
   const sortRouteIds = (ids: string[]): string[] =>
