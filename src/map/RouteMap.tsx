@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import * as maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
+import "./maplibreWorker.ts";
 import type { Feature, FeatureCollection } from "geojson";
 import type { BrowseStop } from "../lib/browseData.ts";
 import { routeShape } from "../lib/routeShapes.ts";

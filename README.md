@@ -46,6 +46,16 @@ npm test
 `npm run build` produces a static site (`dist/`) for GitHub Pages. The map
 (`maplibre-gl`) is code-split and only loads when the user taps **Map**.
 
+```bash
+npm run build && npm run smoke:browser        # check dist/ in a real browser
+npm run smoke:browser -- https://…/           # or check a deployed URL
+```
+
+`smoke:browser` drives the built site in the system Chrome and asserts the map
+actually draws a route line. jsdom has no WebGL, so unit tests cannot see
+MapLibre failures — and the ones that matter are bundler-level and only appear
+in a production build (see `src/map/maplibreWorker.ts`).
+
 ## Data refresh
 
 `.github/workflows/refresh-data.yml` rebuilds `public/data/` daily and whenever

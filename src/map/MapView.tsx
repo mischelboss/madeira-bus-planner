@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import * as maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
+import "./maplibreWorker.ts";
 import type { Feature, FeatureCollection, LineString } from "geojson";
 import type { Itinerary } from "../planner/types.ts";
 import { hhmm } from "../lib/format.ts";
