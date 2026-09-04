@@ -107,7 +107,7 @@ function assertShape(gtfs: ReturnType<typeof readGtfsZip>): void {
 }
 
 const FEED_URL =
-  process.env.GTFS_FEED_URL ??
+  process.env.GTFS_FEED_URL ||
   "https://github.com/mischelboss/madeira-gtfs/releases/download/latest/latest.zip";
 
 async function main() {
