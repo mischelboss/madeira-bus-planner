@@ -1,0 +1,57 @@
+name: Refresh feed data
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 5 * * *" # the timetable horizon shrinks every day it isn't refreshed
+  repository_dispatch:
+    types: [gtfs-published]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      - name: Rebuild packed data
+        run: npm run build:data
+        env:
+          GTFS_FEED_URL: ${{ vars.GTFS_FEED_URL }}
+
+      # incremental — only newly-added stops are geocoded (rate-limited to ~1/s)
+      - name: Geocode new stops
+        run: npm run geocode
+        continue-on-error: true
+
+      - name: Rebuild with any new towns
+        run: npm run build:data
+
+      - name: Open a PR if the data changed
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "madeira-data-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add public/data data/geocode-cache.json
+          if git diff --cached --quiet; then
+            echo "no data change"
+            exit 0
+          fi
+          BR="data/auto-refresh"
+          git checkout -B "$BR"
+          VER="$(node -p "require('./public/data/meta.json').feedVersion")"
+          git commit -m "data: refresh feed ($VER)"
+          git push -f origin "$BR"
+          gh pr create --head "$BR" --base main \
+            --title "data: refresh feed ($VER)" \
+            --body "Automated packed-data rebuild from the latest published GTFS feed." \
+            || gh pr edit "$BR" --title "data: refresh feed ($VER)"
