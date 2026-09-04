@@ -78,6 +78,9 @@ export class LocalPlanner implements TripPlanner {
   get horizonEndDate(): string {
     return this.meta?.feedEndDate ?? "";
   }
+  get horizonStartDate(): string {
+    return this.meta?.feedStartDate ?? "";
+  }
 
   ready(): Promise<void> {
     if (!this.readyPromise) this.readyPromise = this.init();
@@ -162,6 +165,7 @@ export class LocalPlanner implements TripPlanner {
   async plan(query: PlanQuery): Promise<PlanResult> {
     await this.ready();
     const feedEndDate = this.meta.feedEndDate;
+    const feedStartDate = this.meta.feedStartDate;
     const flagCtx = { requestedDepartAt: query.departAt, feedEndDate };
     const adjusted = adjustDeparture(flagCtx);
 
@@ -176,6 +180,7 @@ export class LocalPlanner implements TripPlanner {
       itineraries: [],
       flags: { dateAdjustedFromPast: adjusted.dateAdjustedFromPast, beyondPublishedHorizon: false, noMoreServiceToday: false },
       horizonEndDate: feedEndDate,
+      horizonStartDate: feedStartDate,
       outcome,
       query: { from: query.from, to: query.to, effectiveDepartAt: toMadeiraISO(adjusted.effectiveEpochSec) },
       feedVersion: this.meta.feedVersion,
@@ -188,10 +193,26 @@ export class LocalPlanner implements TripPlanner {
     if (to.anchors.length === 0) return baseResult("destination_unreachable", { nearestStop: to.nearest });
 
     const maxItineraries = query.maxItineraries ?? 4;
-    let raw = await this.runSearch(adjusted.effectiveEpochSec, from.anchors, to.anchors, maxItineraries, 0, 4);
-    if (raw.itineraries.length === 0 && !raw.nextDeparture) {
-      // widen: nothing in the next few days — look further into the horizon
-      raw = await this.runSearch(adjusted.effectiveEpochSec, from.anchors, to.anchors, maxItineraries, 4, 18);
+
+    // A freshly published feed can start in the future; a "leave now" search
+    // then lands before any service exists. Clamp to the first published day
+    // and plan from there (and tell the UI so it can say why).
+    const beforePublishedHorizon =
+      localDate(adjusted.effectiveEpochSec) < this.meta.feedStartDate;
+    const searchEpochSec = beforePublishedHorizon
+      ? madeiraMidnightEpochSec(this.meta.feedStartDate)
+      : adjusted.effectiveEpochSec;
+
+    let raw: RawResult;
+    if (beforePublishedHorizon) {
+      // one wide pass over the feed's opening weeks
+      raw = await this.runSearch(searchEpochSec, from.anchors, to.anchors, maxItineraries, 0, 21, 40 * 3600);
+    } else {
+      raw = await this.runSearch(searchEpochSec, from.anchors, to.anchors, maxItineraries, 0, 4);
+      if (raw.itineraries.length === 0 && !raw.nextDeparture) {
+        // widen: nothing in the next few days — look further into the horizon
+        raw = await this.runSearch(searchEpochSec, from.anchors, to.anchors, maxItineraries, 4, 18);
+      }
     }
 
     const itineraries = raw.itineraries.map((r) => this.hydrate(r, from.point, to.point));
@@ -200,7 +221,7 @@ export class LocalPlanner implements TripPlanner {
       : null;
 
     const derived = deriveFlags(
-      { itineraries, nextDeparture, effectiveEpochSec: adjusted.effectiveEpochSec },
+      { itineraries, nextDeparture, effectiveEpochSec: searchEpochSec, beforePublishedHorizon },
       flagCtx,
       adjusted,
     );
@@ -210,6 +231,7 @@ export class LocalPlanner implements TripPlanner {
       flags: derived.flags,
       adjustedTo: adjusted.adjustedTo,
       horizonEndDate: feedEndDate,
+      horizonStartDate: feedStartDate,
       nextDeparture: derived.nextDeparture,
       outcome: derived.noServiceInHorizon
         ? "no_service_in_horizon"
@@ -228,6 +250,7 @@ export class LocalPlanner implements TripPlanner {
     maxItineraries: number,
     dayFrom: number,
     dayTo: number,
+    journeyCapSec?: number,
   ): Promise<RawResult> {
     const startDate = localDate(effectiveEpochSec);
     const startEpochDay = epochDayFromDate(startDate);
@@ -246,7 +269,7 @@ export class LocalPlanner implements TripPlanner {
         departAfterEpochSec: effectiveEpochSec,
         maxItineraries,
         mttSec: MTT_SECONDS,
-        maxJourneySec: dayFrom > 0 ? 30 * 3600 : 6 * 3600,
+        maxJourneySec: journeyCapSec ?? (dayFrom > 0 ? 30 * 3600 : 6 * 3600),
       } satisfies SearchRequest,
     })) as RawResult;
   }
@@ -258,14 +281,30 @@ export class LocalPlanner implements TripPlanner {
   ): Itinerary {
     let transitSeen = 0;
     const legs: Leg[] = r.legs.map((raw) => this.hydrateLeg(raw, fromPoint, toPoint, () => transitSeen++));
+
+    // A leading walk shouldn't sit idle at the stop — retime it to meet the
+    // first bus. Normally that's a few minutes; it's hours when the feed
+    // starts in the future and the search was clamped to its first day.
+    if (legs[0]?.mode === "walk" && legs[1]?.mode === "transit") {
+      const walk = legs[0];
+      const board = legs[1].stops[0].departAt;
+      const walkSec = isoToEpochSec(walk.arriveAt) - isoToEpochSec(walk.departAt);
+      walk.arriveAt = board;
+      walk.departAt = toMadeiraISO(isoToEpochSec(board) - walkSec);
+    }
+
     const transitLegs = legs.filter((l): l is TransitLeg => l.mode === "transit");
     const signature = transitLegs
       .map((l) => `${l.route.routeId}:${l.stops[0].stop.stopId}>${l.stops[l.stops.length - 1].stop.stopId}`)
       .join("|");
+    const departAt = legs[0].departAt;
+    const arriveAt = legs[legs.length - 1].arriveAt;
     return {
-      departAt: legs[0].departAt,
-      arriveAt: legs[legs.length - 1].arriveAt,
-      durationSeconds: r.arriveEpochSec - r.departEpochSec,
+      departAt,
+      arriveAt,
+      // from the actual first movement, not the (possibly much earlier) instant
+      // the search departed from — matters when the next bus is hours away
+      durationSeconds: isoToEpochSec(arriveAt) - isoToEpochSec(departAt),
       transferCount: r.transferCount,
       walkingSeconds: r.walkSec,
       walkingMeters: legs.filter((l) => l.mode === "walk").reduce((a, l) => a + l.distanceMeters, 0),

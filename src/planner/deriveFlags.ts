@@ -46,6 +46,8 @@ export interface RawFlagInput {
   itineraries: Itinerary[];
   nextDeparture: NextDeparture | null;
   effectiveEpochSec: number;
+  /** the search was clamped forward to the feed's first published day */
+  beforePublishedHorizon?: boolean;
 }
 
 export interface DerivedFlags {
@@ -91,6 +93,7 @@ export function deriveFlags(
     flags: {
       dateAdjustedFromPast: adjusted.dateAdjustedFromPast,
       beyondPublishedHorizon,
+      beforePublishedHorizon: raw.beforePublishedHorizon ?? false,
       noMoreServiceToday,
     },
     nextDeparture,

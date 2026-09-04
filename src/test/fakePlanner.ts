@@ -57,6 +57,7 @@ export function makeFakePlanner(result: Partial<PlanResult> = {}): TripPlanner {
   return {
     feedVersion: "test",
     horizonEndDate: "2027-06-30",
+    horizonStartDate: "2026-09-08",
     ready: async () => {},
     listStops: async () => FAKE_STOPS,
     nearbyStops: async (_at: LatLon) => FAKE_STOPS.map((stop) => ({ stop, meters: 100, walkSeconds: 120 })),
@@ -64,6 +65,7 @@ export function makeFakePlanner(result: Partial<PlanResult> = {}): TripPlanner {
       itineraries: [makeItinerary()],
       flags: { dateAdjustedFromPast: false, beyondPublishedHorizon: false, noMoreServiceToday: false },
       horizonEndDate: "2027-06-30",
+      horizonStartDate: "2026-09-08",
       outcome: "ok",
       query: { from: q.from, to: q.to, effectiveDepartAt: "2026-09-08T08:00:00+01:00" },
       feedVersion: "test",
