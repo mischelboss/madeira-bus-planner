@@ -19,8 +19,6 @@ import { extname, join, resolve } from "node:path";
 
 const BASE_PATH = "/madeira-bus-planner";
 const PORT = 4180;
-// HF 01's route_color — the line we expect to see drawn
-const EXPECT_RGB = [140, 198, 65];
 
 /** Serve dist/ the way GitHub Pages does: .gz as an opaque body, no Content-Encoding.
  *  (`vite preview` sets Content-Encoding: gzip, which breaks the app's own gunzip.) */
@@ -79,14 +77,17 @@ try {
   await page.waitForTimeout(7000);
   await page.locator(".mapview-canvas").screenshot({ path: "/tmp/mbp-smoke-map.png" });
 
+  // "Leave now" picks whichever itinerary is fastest right now, so its route
+  // colour varies by time of day — don't hardcode one. Basemap tiles are
+  // blocked, so any saturated (non-grey) pixel can only be our own line/dot
+  // layers; a flat grey canvas has R≈G≈B everywhere.
   const png = PNG.sync.read(readFileSync("/tmp/mbp-smoke-map.png"));
   let hits = 0;
   for (let i = 0; i < png.data.length; i += 4) {
-    if (Math.abs(png.data[i] - EXPECT_RGB[0]) < 26 &&
-        Math.abs(png.data[i + 1] - EXPECT_RGB[1]) < 26 &&
-        Math.abs(png.data[i + 2] - EXPECT_RGB[2]) < 26) hits++;
+    const [r, g, bl] = [png.data[i], png.data[i + 1], png.data[i + 2]];
+    if (Math.max(r, g, bl) - Math.min(r, g, bl) > 30) hits++;
   }
-  console.log(`route-line pixels: ${hits}`);
+  console.log(`coloured (route/stop) pixels: ${hits}`);
   if (hits < 200) { console.error("FAIL: the route shape is not drawn on the map"); failed = true; }
   else console.log("OK: route shape renders");
 } catch (e) {
