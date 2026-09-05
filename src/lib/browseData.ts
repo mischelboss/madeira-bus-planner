@@ -75,15 +75,27 @@ export function useBrowseData(): { data: BrowseData | null; error: string | null
   return { data, error };
 }
 
+/**
+ * "06:15–21:40", or "10:00 only" when the sampled day has exactly one
+ * departure — a handful of long rural routes (e.g. Rodoeste 380, Funchal to
+ * Porto Moniz) genuinely run once a day. `first === last` only happens for a
+ * single trip (two distinct departures are always at least a minute apart),
+ * so it's an unambiguous signal, not a guess.
+ */
+function spanLabel(w: ServiceWindow): string {
+  return w.first === w.last ? `${w.first} only` : `${w.first}–${w.last}`;
+}
+
 /** "Every ~20 min · 06:15–21:40" (or just the span when there's no headway). */
 export function frequencyLabel(w: ServiceWindow): string {
-  const span = `${w.first}–${w.last}`;
+  const span = spanLabel(w);
   return w.frequencyMin ? `Every ~${w.frequencyMin} min · ${span}` : span;
 }
 
 /** "06:15–21:40 · every ~20 min" — the Route Detail service-hours row. */
 export function serviceHoursLabel(w: ServiceWindow): string {
-  return w.frequencyMin ? `${w.first}–${w.last} · every ~${w.frequencyMin} min` : `${w.first}–${w.last}`;
+  const span = spanLabel(w);
+  return w.frequencyMin ? `${span} · every ~${w.frequencyMin} min` : span;
 }
 
 /** A route's best one-line frequency summary (weekday preferred). */
