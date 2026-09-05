@@ -21,6 +21,7 @@ import {
   type Row,
 } from "./lib/gtfs.ts";
 import { haversineMeters } from "./lib/geo.ts";
+import { fetchFeedZip } from "../src/lib/fetchFeed.ts";
 import { readableStopName } from "../src/lib/stopNames.ts";
 import {
   encodeTimetable,
@@ -124,9 +125,10 @@ async function main() {
 
   let zipPath = src;
   if (/^https?:/.test(src)) {
-    const res = await fetch(src);
-    if (!res.ok) throw new Error(`fetch ${src}: ${res.status}`);
-    const buf = Buffer.from(await res.arrayBuffer());
+    // madeira-gtfs is a private repo; GTFS_REPO_TOKEN (a PAT with Contents:Read
+    // on it) lets this resolve the release asset via the GitHub API instead of
+    // the plain download URL, which 404s for a private repo regardless of auth.
+    const buf = await fetchFeedZip(src, { token: process.env.GTFS_REPO_TOKEN });
     zipPath = resolve(ROOT, "data/feed-snapshot/latest.zip");
     mkdirSync(dirname(zipPath), { recursive: true });
     writeFileSync(zipPath, buf);

@@ -62,3 +62,10 @@ in a production build (see `src/map/maplibreWorker.ts`).
 `madeira-gtfs` publishes a new feed (`repository_dispatch: gtfs-published`),
 opening a PR when the output changes. The cold geocode is run locally once and
 committed, so CI only ever does fast incremental runs.
+
+`madeira-gtfs` is a private repo, so the workflow needs a `GTFS_REPO_TOKEN`
+secret — a PAT (classic or fine-grained) with `Contents: Read-only` on
+`mischelboss/madeira-gtfs` — to resolve the release asset via the GitHub API
+(`src/lib/fetchFeed.ts`); the plain `releases/download/...` URL 404s for a
+private repo regardless of auth. Without the secret, `build:data` falls back
+to an unauthenticated fetch, which will 404.

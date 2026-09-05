@@ -26,6 +26,10 @@ jobs:
         run: npm run build:data
         env:
           GTFS_FEED_URL: ${{ vars.GTFS_FEED_URL }}
+          # madeira-gtfs is private; a PAT with Contents:Read on it lets the
+          # fetch resolve the release asset via the GitHub API instead of the
+          # plain download URL, which 404s for a private repo either way.
+          GTFS_REPO_TOKEN: ${{ secrets.GTFS_REPO_TOKEN }}
 
       # incremental — only newly-added stops are geocoded (rate-limited to ~1/s)
       - name: Geocode new stops
