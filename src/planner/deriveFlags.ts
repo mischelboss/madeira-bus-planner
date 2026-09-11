@@ -82,17 +82,33 @@ export function deriveFlags(
   let nextDeparture: NextDeparture | null = null;
 
   if (sameDay.length === 0) {
-    noMoreServiceToday = true;
-    itineraries = [];
-    if (raw.nextDeparture) {
-      nextDeparture = raw.nextDeparture;
-    } else if (otherDay) {
-      // search() already found a real itinerary — it just lands on a
-      // different calendar day. Surface it as the answer instead of
-      // discarding it (it used to be dropped on the floor here).
-      nextDeparture = { departAt: otherDay.departAt, itinerary: otherDay };
+    // raw.nextDeparture comes from search()'s uncapped fallback pass, which
+    // only ever runs when the capped primary pass found nothing at all — it
+    // widens maxJourneySec from the SAME departAfterEpochSec, so it does NOT
+    // guarantee the itinerary it finds actually departs on a later calendar
+    // day. Trusting it blindly produced a real contradiction: "no more
+    // buses today" shown next to a "next departure" that is itself today,
+    // just past the primary pass's duration cap. If it's genuinely
+    // same-day, it's a normal found itinerary — not a "no more service
+    // today" situation — and belongs in `itineraries`, not `nextDeparture`.
+    const nextDepDate = raw.nextDeparture
+      ? localDate(isoToEpochSec(raw.nextDeparture.departAt))
+      : null;
+    if (raw.nextDeparture && nextDepDate === effectiveDate) {
+      itineraries = [raw.nextDeparture.itinerary];
     } else {
-      noServiceInHorizon = true;
+      noMoreServiceToday = true;
+      itineraries = [];
+      if (raw.nextDeparture) {
+        nextDeparture = raw.nextDeparture;
+      } else if (otherDay) {
+        // search() already found a real itinerary — it just lands on a
+        // different calendar day. Surface it as the answer instead of
+        // discarding it (it used to be dropped on the floor here).
+        nextDeparture = { departAt: otherDay.departAt, itinerary: otherDay };
+      } else {
+        noServiceInHorizon = true;
+      }
     }
   }
 

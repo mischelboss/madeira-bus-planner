@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { makeItinerary } from "../test/fakePlanner.ts";
+import { makeItinerary, makeTransitLeg } from "../test/fakePlanner.ts";
 
 // maplibre-gl doesn't run under jsdom (no WebGL) — stub the lazy-loaded map,
 // same convention as the untested MapView/RouteMap components.
@@ -70,6 +70,30 @@ describe("ItineraryCard", () => {
 
     rerender(<ItineraryCard itinerary={makeItinerary()} expanded onToggle={onToggle} />);
     expect(screen.getByText("Câmara de Lobos")).toBeInTheDocument();
+  });
+
+  it("gives each distinct line its own leg-identity swatch color, in both the summary and the timeline", () => {
+    const withTransfer = makeItinerary({
+      transferCount: 1,
+      legs: [makeTransitLeg("hf-1"), makeTransitLeg("rod-9")],
+    });
+    render(<ItineraryCard itinerary={withTransfer} expanded onToggle={() => {}} />);
+
+    const swatches = document.querySelectorAll(".line-badge-accent");
+    expect(swatches).toHaveLength(2);
+    const swatchColors = Array.from(swatches).map(
+      (el) => (el as HTMLElement).style.getPropertyValue("--line-badge-accent"),
+    );
+    expect(new Set(swatchColors).size).toBe(2);
+
+    // the expanded timeline's dots pick up the same two colors
+    const dots = document.querySelectorAll(".timeline-dot");
+    const dotColors = new Set(
+      Array.from(dots)
+        .map((el) => (el as HTMLElement).style.getPropertyValue("--timeline-dot-color"))
+        .filter(Boolean),
+    );
+    expect(dotColors).toEqual(new Set(swatchColors));
   });
 
   it("renders the map only when expanded", async () => {

@@ -1,6 +1,7 @@
 import { lazy, Suspense } from "react";
 import type { Itinerary, Leg, TransitLeg } from "../planner/types.ts";
 import { durationLabel, hhmm, transferLabel } from "../lib/format.ts";
+import { assignLegColors } from "../lib/legColors.ts";
 import { LineBadge } from "./LineBadge.tsx";
 import { StopTimeline } from "./StopTimeline.tsx";
 import { WalkIcon } from "./icons.tsx";
@@ -20,6 +21,7 @@ interface Props {
 export function ItineraryCard({ itinerary: it, expanded, onToggle }: Props) {
   const transitLegs = it.legs.filter((l): l is TransitLeg => l.mode === "transit");
   const hasWalk = it.legs.some((l: Leg) => l.mode === "walk");
+  const legColors = assignLegColors(it);
 
   return (
     <div className="itin card">
@@ -36,7 +38,7 @@ export function ItineraryCard({ itinerary: it, expanded, onToggle }: Props) {
         </div>
         <div className="itin-meta">
           {transitLegs.map((l, i) => (
-            <LineBadge key={i} route={l.route} />
+            <LineBadge key={i} route={l.route} accentColor={legColors.get(l.route.routeId)} />
           ))}
           {hasWalk && (
             <span className="itin-walk">
@@ -49,7 +51,7 @@ export function ItineraryCard({ itinerary: it, expanded, onToggle }: Props) {
       </button>
       {expanded && (
         <>
-          <StopTimeline itinerary={it} />
+          <StopTimeline itinerary={it} legColors={legColors} />
           <Suspense fallback={null}>
             <ItineraryMap itinerary={it} />
           </Suspense>

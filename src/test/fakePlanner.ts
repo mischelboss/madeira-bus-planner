@@ -1,6 +1,7 @@
 import type {
   Itinerary,
   LatLon,
+  Leg,
   PlanQuery,
   PlanResult,
   Stop,
@@ -50,6 +51,46 @@ export function makeItinerary(over: Partial<Itinerary> = {}): Itinerary {
       },
     ],
     ...over,
+  };
+}
+
+/** A minimal transit leg on the given route — for tests that only care
+ *  about leg identity (e.g. per-leg coloring), not real geography/times. */
+export function makeTransitLeg(routeId: string): Leg {
+  return {
+    mode: "transit",
+    from: { stopId: "s1", name: "Funchal - Praça", at: FAKE_STOPS[0].at },
+    to: { stopId: "s3", name: "Calheta - Vila", at: FAKE_STOPS[2].at },
+    departAt: "2026-09-08T08:05:00+01:00",
+    arriveAt: "2026-09-08T08:52:00+01:00",
+    distanceMeters: 0,
+    route: {
+      routeId,
+      shortName: routeId,
+      longName: routeId,
+      operator: "HF",
+      operatorName: "Horários do Funchal",
+    },
+    headsign: "Calheta",
+    isLastTripToday: false,
+    stops: [
+      { stop: { stopId: "s1", name: "Funchal - Praça", at: FAKE_STOPS[0].at }, arriveAt: "2026-09-08T08:05:00+01:00", departAt: "2026-09-08T08:05:00+01:00" },
+      { stop: { stopId: "s3", name: "Calheta - Vila", at: FAKE_STOPS[2].at }, arriveAt: "2026-09-08T08:52:00+01:00", departAt: "2026-09-08T08:52:00+01:00" },
+    ],
+  };
+}
+
+/** A minimal walk leg — for tests checking that walk legs never get a
+ *  leg-identity color. */
+export function makeWalkLeg(): Leg {
+  return {
+    mode: "walk",
+    from: { stopId: "@p", name: "Start", at: { lat: 0, lon: 0 } },
+    to: { stopId: "s1", name: "Funchal - Praça", at: FAKE_STOPS[0].at },
+    departAt: "2026-09-08T08:00:00+01:00",
+    arriveAt: "2026-09-08T08:06:00+01:00",
+    distanceMeters: 400,
+    summary: "6 min walk",
   };
 }
 

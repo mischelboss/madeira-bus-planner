@@ -1,9 +1,19 @@
 .line-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   font-size: 12px;
   font-weight: 700;
   padding: 3px 8px;
   border-radius: var(--radius-badge);
   white-space: nowrap;
+}
+.line-badge-accent {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--line-badge-accent);
 }
 .line-badge.op-hf {
   background: var(--op-hf-bg);
