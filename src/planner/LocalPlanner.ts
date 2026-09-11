@@ -6,6 +6,7 @@
 import CsaWorker from "./csa.worker.ts?worker";
 import type { RawItinerary, RawLeg, RawResult, SearchRequest } from "./csa.ts";
 import { adjustDeparture, deriveFlags } from "./deriveFlags.ts";
+import { haversineMeters } from "../lib/geo.ts";
 import {
   dateFromEpochDay,
   epochDayFromDate,
@@ -47,17 +48,6 @@ interface MetaJson {
   feedEndDate: string;
 }
 
-function haversine(a: LatLon, b: LatLon): number {
-  const R = 6_371_000;
-  const rad = Math.PI / 180;
-  const dLat = (b.lat - a.lat) * rad;
-  const dLon = (b.lon - a.lon) * rad;
-  const la1 = a.lat * rad;
-  const la2 = b.lat * rad;
-  const h =
-    Math.sin(dLat / 2) ** 2 + Math.cos(la1) * Math.cos(la2) * Math.sin(dLon / 2) ** 2;
-  return 2 * R * Math.asin(Math.sqrt(h));
-}
 const walkSecondsFor = (meters: number) => Math.max(60, Math.round((meters * DETOUR) / WALK_MPS));
 
 let reqCounter = 0;
@@ -128,7 +118,7 @@ export class LocalPlanner implements TripPlanner {
   async nearbyStops(at: LatLon, maxMeters = DEFAULT_MAX_WALK_M): Promise<NearbyStop[]> {
     await this.ready();
     return this.stops
-      .map((stop) => ({ stop, meters: haversine(at, stop.at) }))
+      .map((stop) => ({ stop, meters: haversineMeters(at, stop.at) }))
       .filter((x) => x.meters <= maxMeters)
       .sort((a, b) => a.meters - b.meters)
       .slice(0, MAX_NEARBY)
@@ -149,7 +139,7 @@ export class LocalPlanner implements TripPlanner {
       };
     }
     const scored = this.stops
-      .map((stop, idx) => ({ idx, stop, meters: haversine(ref.at, stop.at) }))
+      .map((stop, idx) => ({ idx, stop, meters: haversineMeters(ref.at, stop.at) }))
       .sort((a, b) => a.meters - b.meters);
     const near = scored.filter((x) => x.meters <= maxMeters).slice(0, MAX_NEARBY);
     if (near.length === 0) {
@@ -351,7 +341,7 @@ export class LocalPlanner implements TripPlanner {
     if (raw.mode === "walk") {
       const from = this.stopPointFor(raw.fromStopIdx, fromPoint);
       const to = this.stopPointFor(raw.toStopIdx, toPoint);
-      const meters = haversine(from.at, to.at);
+      const meters = haversineMeters(from.at, to.at);
       const mins = Math.max(1, Math.round(raw.walkSec / 60));
       return {
         mode: "walk",
