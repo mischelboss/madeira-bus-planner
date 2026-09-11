@@ -1,9 +1,15 @@
+import { lazy, Suspense } from "react";
 import type { Itinerary, Leg, TransitLeg } from "../planner/types.ts";
 import { durationLabel, hhmm, transferLabel } from "../lib/format.ts";
 import { LineBadge } from "./LineBadge.tsx";
 import { StopTimeline } from "./StopTimeline.tsx";
 import { WalkIcon } from "./icons.tsx";
 import "./ItineraryCard.css";
+
+// maplibre-gl is ~330 KB gzipped — keep it out of the initial load, same as MapView.
+const ItineraryMap = lazy(() =>
+  import("../map/ItineraryMap.tsx").then((m) => ({ default: m.ItineraryMap })),
+);
 
 interface Props {
   itinerary: Itinerary;
@@ -41,7 +47,14 @@ export function ItineraryCard({ itinerary: it, expanded, onToggle }: Props) {
           {it.isLastTripToday && <span className="itin-last">Last trip today</span>}
         </div>
       </button>
-      {expanded && <StopTimeline itinerary={it} />}
+      {expanded && (
+        <>
+          <StopTimeline itinerary={it} />
+          <Suspense fallback={null}>
+            <ItineraryMap itinerary={it} />
+          </Suspense>
+        </>
+      )}
     </div>
   );
 }

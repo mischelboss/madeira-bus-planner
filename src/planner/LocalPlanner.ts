@@ -219,8 +219,14 @@ export class LocalPlanner implements TripPlanner {
     }
 
     const itineraries = raw.itineraries.map((r) => this.hydrate(r, from.point, to.point));
+    // Read departAt off the hydrated itinerary, not the raw epoch: hydrate()
+    // retimes a leading walk leg to meet the bus, so the raw departEpochSec
+    // is just the search's input instant, not the real departure time.
     const nextDeparture = raw.nextDeparture
-      ? { departAt: toMadeiraISO(raw.nextDeparture.departEpochSec), itinerary: this.hydrate(raw.nextDeparture, from.point, to.point) }
+      ? (() => {
+          const itinerary = this.hydrate(raw.nextDeparture!, from.point, to.point);
+          return { departAt: itinerary.departAt, itinerary };
+        })()
       : null;
 
     const derived = deriveFlags(
@@ -297,8 +303,15 @@ export class LocalPlanner implements TripPlanner {
     }
 
     const transitLegs = legs.filter((l): l is TransitLeg => l.mode === "transit");
+    // Include each leg's departure time, not just its route/stop pair —
+    // otherwise a later bus on the same route (now a normal result, #2)
+    // collides with an earlier one: same signature means the same React
+    // key and the same "is this the expanded card?" identity.
     const signature = transitLegs
-      .map((l) => `${l.route.routeId}:${l.stops[0].stop.stopId}>${l.stops[l.stops.length - 1].stop.stopId}`)
+      .map(
+        (l) =>
+          `${l.route.routeId}:${l.stops[0].stop.stopId}@${l.stops[0].departAt}>${l.stops[l.stops.length - 1].stop.stopId}`,
+      )
       .join("|");
     const departAt = legs[0].departAt;
     const arriveAt = legs[legs.length - 1].arriveAt;

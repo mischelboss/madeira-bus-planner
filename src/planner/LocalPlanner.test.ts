@@ -114,6 +114,28 @@ describe("LocalPlanner (real data)", () => {
     }
   });
 
+  it("gives distinct itineraries distinct signatures, even on the same route", async () => {
+    // Same real stop pair as the "never blank" test above — a busy HF
+    // corridor with several same-route departures a day. Every returned
+    // itinerary must get its own signature (it's the React key AND the
+    // "which card is expanded" identity); two later buses on the same
+    // route used to collide because the signature ignored time.
+    const { LocalPlanner } = await import("./LocalPlanner.ts");
+    const stops = readJson("stops.json") as { stopId: string; name: string }[];
+    const from = stops.find((s) => s.name.includes("AV Mar") && s.name.includes("E E M"))!;
+    const to = stops.find((s) => s.name.startsWith("Ilma"))!;
+
+    const p = new LocalPlanner();
+    await p.ready();
+    const res = await p.plan({
+      from: { kind: "stop", stopId: from.stopId },
+      to: { kind: "stop", stopId: to.stopId },
+    });
+
+    const signatures = res.itineraries.map((it) => it.signature);
+    expect(new Set(signatures).size).toBe(signatures.length);
+  });
+
   it("flags a date beyond the published horizon", async () => {
     const { LocalPlanner } = await import("./LocalPlanner.ts");
     const stops = readJson("stops.json") as { stopId: string; name: string }[];

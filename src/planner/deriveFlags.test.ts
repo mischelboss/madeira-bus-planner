@@ -71,6 +71,22 @@ describe("deriveFlags", () => {
     expect(d.noServiceInHorizon).toBe(false);
   });
 
+  it("surfaces a future-day itinerary from raw.itineraries as nextDeparture, even when raw.nextDeparture is null", () => {
+    // search() found a real trip, it just lands on the next calendar day
+    // (e.g. a future-date search whose only bus departs after midnight) —
+    // this must not be discarded as "no service in the horizon".
+    const future = itin("2026-09-09T00:30:00", "2026-09-09T01:10:00");
+    const d = deriveFlags(
+      { itineraries: [future], nextDeparture: null, effectiveEpochSec: adjusted.effectiveEpochSec },
+      ctx,
+      adjusted,
+    );
+    expect(d.flags.noMoreServiceToday).toBe(true);
+    expect(d.itineraries).toHaveLength(0);
+    expect(d.noServiceInHorizon).toBe(false);
+    expect(d.nextDeparture).toEqual({ departAt: future.departAt, itinerary: future });
+  });
+
   it("flags beyondPublishedHorizon for a date past feed_end_date", () => {
     const far = { feedEndDate: "2027-06-30", nowIso: madeira("2026-09-08T10:00:00"), requestedDepartAt: madeira("2027-08-01T09:00:00") };
     const adj = adjustDeparture(far);

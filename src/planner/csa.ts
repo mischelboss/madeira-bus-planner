@@ -401,11 +401,18 @@ export function search(
     const ft = firstTransit(j.legs);
     if (!ft) break;
     const firstDep = ft.stopTimes[0].departEpochSec;
+    // Include each leg's actual departure time, not just its route/stop
+    // pair — otherwise a later bus on the same route (the common case for
+    // "show me more departures today") collides with an earlier one as a
+    // "duplicate" and gets dropped here.
     const sig = j.legs
       .filter((l): l is Extract<RawLeg, { mode: "transit" }> => l.mode === "transit")
-      .map((l) => `${l.routeIdx}:${l.stopTimes[0].stopIdx}>${l.stopTimes[l.stopTimes.length - 1].stopIdx}`)
+      .map(
+        (l) =>
+          `${l.routeIdx}:${l.stopTimes[0].stopIdx}@${l.stopTimes[0].departEpochSec}>${l.stopTimes[l.stopTimes.length - 1].stopIdx}`,
+      )
       .join("|");
-    if (!seen.has(sig) && !dominated(j, out)) {
+    if (!seen.has(sig)) {
       seen.add(sig);
       out.push(j);
     }
@@ -422,12 +429,6 @@ export function search(
   }
 
   return { itineraries: out, nextDeparture };
-}
-
-function dominated(j: RawItinerary, kept: RawItinerary[]): boolean {
-  return kept.some(
-    (r) => r.arriveEpochSec <= j.arriveEpochSec && r.transferCount <= j.transferCount,
-  );
 }
 
 /** Decompress + decode. `gzBytes` is the raw content of `timetable.bin.gz`. */

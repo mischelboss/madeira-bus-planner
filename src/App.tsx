@@ -6,7 +6,7 @@ import { BrowseScreen } from "./screens/BrowseScreen.tsx";
 import { RouteDetailScreen } from "./screens/RouteDetailScreen.tsx";
 import { TabBar } from "./components/TabBar.tsx";
 import { NAV_EVENT } from "./state/search.ts";
-import { navFromUrl } from "./state/nav.ts";
+import { navFromUrl, homeUrlFor } from "./state/nav.ts";
 
 export function App() {
   const [nav, setNav] = useState(() => navFromUrl());
@@ -20,6 +20,22 @@ export function App() {
       removeEventListener("popstate", sync);
       removeEventListener(NAV_EVENT, sync);
     };
+  }, []);
+
+  // A direct deep link (a shared URL landing straight on Results or Route
+  // Detail) arrives with no prior entry in this tab's session history, so
+  // the browser Back button has nowhere same-app to go. Every in-app
+  // navigation already marks its history entries with `{ mbp: true }`
+  // (nav.ts / state/search.ts); a bare first load never carries that
+  // marker, so this only fires once, on a genuine direct load.
+  useEffect(() => {
+    const initial = navFromUrl();
+    const home = homeUrlFor(initial);
+    if (home && history.state?.mbp !== true) {
+      const deepUrl = location.pathname + location.search;
+      history.replaceState({ mbp: true }, "", home);
+      history.pushState({ mbp: true }, "", deepUrl);
+    }
   }, []);
 
   const showTabBar = nav.view === "search" || nav.view === "browse";

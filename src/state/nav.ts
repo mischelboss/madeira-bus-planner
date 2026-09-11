@@ -29,8 +29,29 @@ function navigate(mutate: (p: URLSearchParams) => void): void {
   const p = new URLSearchParams(location.search);
   mutate(p);
   const q = p.toString();
-  history.pushState(null, "", q ? `?${q}` : location.pathname);
+  history.pushState({ mbp: true }, "", q ? `?${q}` : location.pathname);
   dispatchEvent(new Event(NAV_EVENT));
+}
+
+/** The URL "one level up" from a direct deep link into `nav.view`, or null
+ *  if that view needs no synthesized history (already a tab-bar destination
+ *  reachable with no prior search/browse state). Used once, on first mount,
+ *  to backstop the browser Back button for a link opened directly rather
+ *  than navigated to in-app (see App.tsx). */
+export function homeUrlFor(nav: Nav, search: string = location.search): string | null {
+  if (nav.view === "results") {
+    const p = new URLSearchParams(search);
+    p.delete("go");
+    const q = p.toString();
+    return q ? `?${q}` : location.pathname;
+  }
+  if (nav.view === "routeDetail") {
+    const p = new URLSearchParams(search);
+    p.delete("route");
+    p.set("tab", "browse");
+    return `?${p.toString()}`;
+  }
+  return null;
 }
 
 /** Bottom tab bar. Keeps any resolved from/to params so Search is where you left it. */

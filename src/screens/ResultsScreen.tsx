@@ -18,7 +18,10 @@ export function ResultsScreen() {
   const [result, setResult] = useState<PlanResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [view, setView] = useState<"list" | "map">("list");
-  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  // Only one card's stop timeline / inline map is expanded at a time — each
+  // expanded card mounts its own MapLibre (WebGL) instance, so this keeps at
+  // most one alive rather than risking the browser's concurrent-context cap.
+  const [expandedSig, setExpandedSig] = useState<string | null>(null);
   const [activeMap, setActiveMap] = useState(0);
 
   useEffect(() => {
@@ -44,13 +47,7 @@ export function ResultsScreen() {
     return `Departing ${hhmm(state.departAt)}`;
   }, [state.departAt]);
 
-  const toggle = (sig: string) =>
-    setExpanded((prev) => {
-      const n = new Set(prev);
-      if (n.has(sig)) n.delete(sig);
-      else n.add(sig);
-      return n;
-    });
+  const toggle = (sig: string) => setExpandedSig((prev) => (prev === sig ? null : sig));
 
   const showList = result && !result.flags.noMoreServiceToday && result.itineraries.length > 0;
 
@@ -62,9 +59,7 @@ export function ResultsScreen() {
         </button>
         <div className="results-head-text">
           <div className="results-route">{routeSummary}</div>
-          <div className="results-when">
-            {result?.flags.noMoreServiceToday ? "Tonight" : whenSummary}
-          </div>
+          <div className="results-when">{whenSummary}</div>
         </div>
       </header>
 
@@ -82,7 +77,10 @@ export function ResultsScreen() {
           )}
 
           {result.flags.noMoreServiceToday && (
-            <NoMoreBusesCard next={result.nextDeparture ?? null} />
+            <NoMoreBusesCard
+              next={result.nextDeparture ?? null}
+              requestedAt={result.query.effectiveDepartAt}
+            />
           )}
 
           {result.outcome === "origin_unreachable" && result.nearestStop && (
@@ -132,7 +130,7 @@ export function ResultsScreen() {
                     <ItineraryCard
                       key={it.signature}
                       itinerary={it}
-                      expanded={expanded.has(it.signature)}
+                      expanded={expandedSig === it.signature}
                       onToggle={() => toggle(it.signature)}
                     />
                   ))}

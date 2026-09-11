@@ -79,8 +79,8 @@ export function useSearchState() {
   const commit = useCallback((next: SearchState, replace: boolean) => {
     setState(next);
     const url = urlFromState(next);
-    if (replace) history.replaceState(null, "", url);
-    else history.pushState(null, "", url);
+    if (replace) history.replaceState({ mbp: true }, "", url);
+    else history.pushState({ mbp: true }, "", url);
     dispatchEvent(new Event(NAV_EVENT));
   }, []);
 
