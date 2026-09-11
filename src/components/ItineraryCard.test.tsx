@@ -1,8 +1,15 @@
 import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { ItineraryCard } from "./ItineraryCard.tsx";
 import { makeItinerary } from "../test/fakePlanner.ts";
+
+// maplibre-gl doesn't run under jsdom (no WebGL) — stub the lazy-loaded map,
+// same convention as the untested MapView/RouteMap components.
+vi.mock("../map/ItineraryMap.tsx", () => ({
+  ItineraryMap: () => <div data-testid="itin-map" />,
+}));
+
+const { ItineraryCard } = await import("./ItineraryCard.tsx");
 
 describe("ItineraryCard", () => {
   it("shows departure, arrival, duration and the line badge", () => {
@@ -63,5 +70,15 @@ describe("ItineraryCard", () => {
 
     rerender(<ItineraryCard itinerary={makeItinerary()} expanded onToggle={onToggle} />);
     expect(screen.getByText("Câmara de Lobos")).toBeInTheDocument();
+  });
+
+  it("renders the map only when expanded", async () => {
+    const { rerender } = render(
+      <ItineraryCard itinerary={makeItinerary()} expanded={false} onToggle={() => {}} />,
+    );
+    expect(screen.queryByTestId("itin-map")).not.toBeInTheDocument();
+
+    rerender(<ItineraryCard itinerary={makeItinerary()} expanded onToggle={() => {}} />);
+    await waitFor(() => expect(screen.getByTestId("itin-map")).toBeInTheDocument());
   });
 });

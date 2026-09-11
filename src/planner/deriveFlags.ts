@@ -72,6 +72,9 @@ export function deriveFlags(
   const beyondPublishedHorizon = requestedDate > ctx.feedEndDate;
 
   const sameDay = raw.itineraries.filter((it) => localDate(isoToEpochSec(it.departAt)) === effectiveDate);
+  // raw.itineraries is chronologically sorted (search() pushes in departAfter
+  // order), so the first non-same-day entry is the earliest one.
+  const otherDay = raw.itineraries.find((it) => localDate(isoToEpochSec(it.departAt)) !== effectiveDate);
 
   let noMoreServiceToday = false;
   let noServiceInHorizon = false;
@@ -83,6 +86,11 @@ export function deriveFlags(
     itineraries = [];
     if (raw.nextDeparture) {
       nextDeparture = raw.nextDeparture;
+    } else if (otherDay) {
+      // search() already found a real itinerary — it just lands on a
+      // different calendar day. Surface it as the answer instead of
+      // discarding it (it used to be dropped on the floor here).
+      nextDeparture = { departAt: otherDay.departAt, itinerary: otherDay };
     } else {
       noServiceInHorizon = true;
     }

@@ -181,7 +181,11 @@ describe("CSA", () => {
     const r = search(
       tt,
       buildTripConns(tt),
-      req({ departAfterEpochSec: baseD + h(22), maxJourneySec: 30 * 3600 }),
+      // Both trips recur on every service day (buildFixture's fixture is
+      // always-active), so a wide 30h cap genuinely reaches several real
+      // occurrences — maxItineraries: 1 keeps this test about "does the
+      // scan look past midnight at all", not about how many it finds.
+      req({ departAfterEpochSec: baseD + h(22), maxJourneySec: 30 * 3600, maxItineraries: 1 }),
     );
     // search returns the D+1 journey; deriveFlags is what reclassifies it as "next departure".
     expect(r.itineraries).toHaveLength(1);
@@ -201,5 +205,22 @@ describe("CSA", () => {
     expect(r.itineraries).toHaveLength(0);
     expect(r.nextDeparture).not.toBeNull();
     expect(r.nextDeparture!.departEpochSec).toBe(baseD + 26 * 3600);
+  });
+
+  it("returns multiple later departures on the same route, not just the first", () => {
+    // 3 direct trips on the same route, all after the requested time — a
+    // later trip's later arrival must not make it look "dominated" by an
+    // earlier one and get dropped.
+    const tt = buildFixture([
+      { route: 0, service: 0, direction: 0, stops: [[A, h(9)], [B, h(9.2)], [C, h(9.5)], [D, h(10)]] },
+      { route: 0, service: 0, direction: 0, stops: [[A, h(10)], [B, h(10.2)], [C, h(10.5)], [D, h(11)]] },
+      { route: 0, service: 0, direction: 0, stops: [[A, h(11)], [B, h(11.2)], [C, h(11.5)], [D, h(12)]] },
+    ]);
+    const r = search(tt, buildTripConns(tt), req({}));
+    expect(r.itineraries.map((j) => j.departEpochSec)).toEqual([
+      baseD + h(9),
+      baseD + h(10),
+      baseD + h(11),
+    ]);
   });
 });

@@ -1,0 +1,8 @@
+.itin-map-canvas {
+  width: 100%;
+  height: 200px;
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  background: oklch(90% 0.01 90);
+  margin-top: 10px;
+}
