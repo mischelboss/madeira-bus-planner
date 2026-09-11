@@ -1,6 +1,7 @@
 import * as maplibregl from "maplibre-gl";
 import type { Feature } from "geojson";
 import type { Itinerary } from "../planner/types.ts";
+import { assignLegColors } from "../lib/legColors.ts";
 import { routeShape, sliceShape } from "../lib/routeShapes.ts";
 
 export type LngLat = [number, number];
@@ -24,6 +25,7 @@ export async function legFeatures(it: Itinerary): Promise<{ lines: Feature[]; st
   const lines: Feature[] = [];
   const stops: Feature[] = [];
   const allPts: LngLat[] = [];
+  const legColors = assignLegColors(it);
 
   for (const leg of it.legs) {
     if (leg.mode === "transit") {
@@ -37,7 +39,7 @@ export async function legFeatures(it: Itinerary): Promise<{ lines: Feature[]; st
       lines.push({
         type: "Feature",
         geometry: { type: "LineString", coordinates: coords },
-        properties: { walk: false, color: leg.route.color ?? "#3a6b52" },
+        properties: { walk: false, color: legColors.get(leg.route.routeId) ?? leg.route.color ?? "#3a6b52" },
       });
       leg.stops.forEach((s, i) => {
         stops.push({

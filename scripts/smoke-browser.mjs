@@ -95,6 +95,73 @@ try {
   failed = true;
 }
 
+// --- Differential per-leg color check -------------------------------------
+// jsdom can't render MapLibre, so this is the only place that can catch a
+// per-leg-coloring regression: a transfer itinerary's map must show
+// strictly more distinct line hues than a direct itinerary's, since each
+// leg gets its own color (lib/legColors.ts) instead of every transit leg
+// sharing the route feed's own (often shared/corridor) color.
+function distinctHueBuckets(pngPath) {
+  const png = PNG.sync.read(readFileSync(pngPath));
+  const buckets = new Set();
+  for (let i = 0; i < png.data.length; i += 4) {
+    const [r, g, b] = [png.data[i], png.data[i + 1], png.data[i + 2]];
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    const chroma = max - min;
+    if (chroma <= 30) continue; // skip greys/near-greys (basemap tiles are blocked anyway)
+    let hue;
+    if (max === r) hue = ((g - b) / chroma) % 6;
+    else if (max === g) hue = (b - r) / chroma + 2;
+    else hue = (r - g) / chroma + 4;
+    hue = ((hue * 60) + 360) % 360;
+    buckets.add(Math.floor(hue / 20)); // 18 buckets around the wheel
+  }
+  return buckets;
+}
+
+try {
+  // Direct itinerary (control): the "AV Mar" -> "Ilma" search above.
+  const controlBuckets = distinctHueBuckets("/tmp/mbp-smoke-map.png");
+  console.log(`control (direct) distinct hues: ${controlBuckets.size} [${[...controlBuckets].join(",")}]`);
+
+  // Transfer itinerary: the exact reported Funchal -> Porto Moniz scenario,
+  // loaded directly via the app's own URL-as-state so the result is
+  // deterministic rather than depending on "leave now" timing. This corridor
+  // returns both a direct itinerary and a transfer one — find the card with
+  // 2+ line badges (i.e. an actual transfer) rather than assuming index 0,
+  // expand it, and screenshot its own inline map (same shapeLayers.ts code
+  // path as the full Map tab, just scoped to one card).
+  const transferUrl =
+    `${url}?f=s%3Astop-funchal-5d05ad&fl=Funchal&t=s%3Astop-porto-moniz-4ca23b&tl=Porto%20Moniz` +
+    `&d=2026-09-12T09%3A35%3A00%2B01%3A00&go=1`;
+  await page.goto(transferUrl, { waitUntil: "networkidle" });
+  const transferCard = page
+    .locator(".itin.card")
+    .filter({ has: page.locator(".line-badge").nth(1) })
+    .first();
+  await transferCard.waitFor({ timeout: 15_000 });
+  await transferCard.locator(".itin-summary").click();
+  await page.waitForTimeout(7000);
+  await transferCard.locator(".itin-map-canvas").screenshot({ path: "/tmp/mbp-smoke-map-transfer.png" });
+
+  const transferBuckets = distinctHueBuckets("/tmp/mbp-smoke-map-transfer.png");
+  console.log(`transfer distinct hues: ${transferBuckets.size} [${[...transferBuckets].join(",")}]`);
+
+  if (transferBuckets.size <= controlBuckets.size) {
+    console.error(
+      "FAIL: transfer itinerary's map does not show more distinct line colours than a direct itinerary's " +
+        "— per-leg coloring may not be wired up",
+    );
+    failed = true;
+  } else {
+    console.log("OK: transfer itinerary's legs render in distinct colours");
+  }
+} catch (e) {
+  console.error("FAIL:", e.message);
+  failed = true;
+}
+
 if (problems.length) {
   console.error("FAIL: network / page errors:\n  " + problems.join("\n  "));
   failed = true;

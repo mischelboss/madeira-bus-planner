@@ -87,6 +87,27 @@ describe("deriveFlags", () => {
     expect(d.nextDeparture).toEqual({ departAt: future.departAt, itinerary: future });
   });
 
+  it("treats a same-day raw.nextDeparture as a normal itinerary, not 'no more service today'", () => {
+    // search()'s uncapped fallback pass runs from the SAME instant as the
+    // primary pass whenever the primary pass finds nothing — it can find an
+    // itinerary that actually departs today (just later than the primary
+    // pass's duration cap reached), not a "no more buses today" situation
+    // at all. This reproduces the exact contradiction: the primary pass
+    // finds nothing, the fallback finds a same-day departure (with a
+    // pathologically long wait before its arrival) — "no more buses" must
+    // not be shown alongside a same-day departure.
+    const foundLate = itin("2026-09-08T10:00:00", "2026-09-10T07:13:00");
+    const next = { departAt: foundLate.departAt, itinerary: foundLate };
+    const d = deriveFlags(
+      { itineraries: [], nextDeparture: next, effectiveEpochSec: adjusted.effectiveEpochSec },
+      ctx,
+      adjusted,
+    );
+    expect(d.flags.noMoreServiceToday).toBe(false);
+    expect(d.itineraries).toEqual([foundLate]);
+    expect(d.nextDeparture).toBeNull();
+  });
+
   it("flags beyondPublishedHorizon for a date past feed_end_date", () => {
     const far = { feedEndDate: "2027-06-30", nowIso: madeira("2026-09-08T10:00:00"), requestedDepartAt: madeira("2027-08-01T09:00:00") };
     const adj = adjustDeparture(far);

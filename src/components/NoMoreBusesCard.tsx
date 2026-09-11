@@ -19,6 +19,10 @@ export function NoMoreBusesCard({ next, requestedAt }: Props) {
     : requestedDayLabel === "Tomorrow"
       ? "No more buses tomorrow"
       : `No more buses on ${requestedDayLabel}`;
+  // a journey whose arrival lands on a later calendar day than its own
+  // departure (an overnight or multi-day connection) must say so —
+  // otherwise a bare "arrives 07:13" can read as arriving before it departs
+  const arriveDayLabel = next ? dayLabel(next.itinerary.arriveAt, next.itinerary.departAt) : "";
   return (
     <div className="nmb card">
       <div className="nmb-icon">
@@ -40,7 +44,9 @@ export function NoMoreBusesCard({ next, requestedAt }: Props) {
               .filter((l) => l.mode === "transit")
               .map((l) => (l.mode === "transit" ? `${l.route.operator} ${l.route.shortName}` : ""))
               .join(" · ")}{" "}
-            · {transferLabel(next.itinerary.transferCount)} · arrives {hhmm(next.itinerary.arriveAt)}
+            · {transferLabel(next.itinerary.transferCount)} · arrives{" "}
+            {arriveDayLabel && `${arriveDayLabel}, `}
+            {hhmm(next.itinerary.arriveAt)}
           </div>
         </div>
       )}
