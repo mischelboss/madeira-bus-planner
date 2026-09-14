@@ -133,8 +133,25 @@ export class LocalPlanner implements TripPlanner {
       const idx = this.stopIdxById.get(ref.stopId);
       if (idx === undefined) return null;
       const s = this.stops[idx];
+      // The exact stop the rider picked is always a free (zero-walk) anchor,
+      // but it shouldn't be the ONLY one: two stops can be a few hundred
+      // metres apart (e.g. "Calheta" and "Vila da Calheta") without a foot-
+      // transfer edge between them in the packed timetable, which used to
+      // force an extra bus leg just to land on the exact stop rather than
+      // walking the short remaining stretch from one already on the route.
+      // Offer nearby stops too, the same way an unpinned lat/lon endpoint
+      // already does below — the CSA only ever picks one if it's actually
+      // faster, so this can only help, never force a worse itinerary.
+      const near = this.stops
+        .map((stop, i) => ({ idx: i, stop, meters: haversineMeters(s.at, stop.at) }))
+        .filter((x) => x.idx !== idx && x.meters <= maxMeters)
+        .sort((a, b) => a.meters - b.meters)
+        .slice(0, MAX_NEARBY);
       return {
-        anchors: [{ stopIdx: idx, walkSec: 0 }],
+        anchors: [
+          { stopIdx: idx, walkSec: 0 },
+          ...near.map((x) => ({ stopIdx: x.idx, walkSec: walkSecondsFor(x.meters) })),
+        ],
         point: { stopId: s.stopId, name: s.name, displayName: s.displayName, town: s.town, at: s.at },
       };
     }

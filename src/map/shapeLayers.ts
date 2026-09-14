@@ -26,6 +26,8 @@ export async function legFeatures(it: Itinerary): Promise<{ lines: Feature[]; st
   const stops: Feature[] = [];
   const allPts: LngLat[] = [];
   const legColors = assignLegColors(it);
+  const totalTransitLegs = it.legs.filter((l) => l.mode === "transit").length;
+  let transitIndex = 0;
 
   for (const leg of it.legs) {
     if (leg.mode === "transit") {
@@ -36,10 +38,22 @@ export async function legFeatures(it: Itinerary): Promise<{ lines: Feature[]; st
           ? sliceShape(shape, stopPts[0], stopPts[stopPts.length - 1])
           : stopPts;
       allPts.push(...coords);
+      // Two legs sharing a road corridor (e.g. a transfer between two lines
+      // running the same street) would otherwise draw exactly on top of one
+      // another — the later feature hides the earlier one entirely, even
+      // though their colors differ. Fan each transit leg out by a small,
+      // zoom-invariant pixel offset (`line-offset` in `drawLayers()`) so
+      // overlapping legs render as visible parallel strands instead.
+      const lineOffset = (transitIndex - (totalTransitLegs - 1) / 2) * 5;
+      transitIndex++;
       lines.push({
         type: "Feature",
         geometry: { type: "LineString", coordinates: coords },
-        properties: { walk: false, color: legColors.get(leg.route.routeId) ?? leg.route.color ?? "#3a6b52" },
+        properties: {
+          walk: false,
+          color: legColors.get(leg.route.routeId) ?? leg.route.color ?? "#3a6b52",
+          lineOffset,
+        },
       });
       leg.stops.forEach((s, i) => {
         stops.push({
@@ -69,12 +83,12 @@ export async function legFeatures(it: Itinerary): Promise<{ lines: Feature[]; st
     stops.unshift({
       type: "Feature",
       geometry: { type: "Point", coordinates: allPts[0] },
-      properties: { kind: "origin", name: "Start" },
+      properties: { kind: "origin", name: it.legs[0].from.name },
     });
     stops.push({
       type: "Feature",
       geometry: { type: "Point", coordinates: allPts[allPts.length - 1] },
-      properties: { kind: "dest", name: "End" },
+      properties: { kind: "dest", name: it.legs[it.legs.length - 1].to.name },
     });
   }
   return { lines, stops };
@@ -87,7 +101,11 @@ export function drawLayers(m: maplibregl.Map) {
     source: "route",
     filter: ["!", ["get", "walk"]],
     layout: { "line-cap": "round", "line-join": "round" },
-    paint: { "line-color": ["get", "color"], "line-width": 4 },
+    paint: {
+      "line-color": ["get", "color"],
+      "line-width": 4,
+      "line-offset": ["coalesce", ["get", "lineOffset"], 0],
+    },
   });
   m.addLayer({
     id: "route-walk",
@@ -117,5 +135,21 @@ export function drawLayers(m: maplibregl.Map) {
       "circle-stroke-color": "#fff",
       "circle-stroke-width": 2,
     },
+  });
+
+  // Click a stop dot to see its name.
+  m.on("mouseenter", "stop-dots", () => {
+    m.getCanvas().style.cursor = "pointer";
+  });
+  m.on("mouseleave", "stop-dots", () => {
+    m.getCanvas().style.cursor = "";
+  });
+  m.on("click", "stop-dots", (e) => {
+    const f = e.features?.[0];
+    if (!f || f.geometry.type !== "Point") return;
+    new maplibregl.Popup({ closeButton: true, closeOnClick: true, offset: 12 })
+      .setLngLat(f.geometry.coordinates as [number, number])
+      .setText(String(f.properties?.name ?? ""))
+      .addTo(m);
   });
 }

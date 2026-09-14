@@ -152,3 +152,50 @@
   font-weight: 600;
   color: var(--text-on-surface);
 }
+
+.rd-times {
+  padding: 14px 16px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.rd-times-toggle {
+  margin: 0;
+}
+.rd-times-scroll {
+  overflow-x: auto;
+}
+.rd-times-table {
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.rd-times-table th,
+.rd-times-table td {
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--border-card);
+  white-space: nowrap;
+  text-align: left;
+}
+.rd-times-table tr:last-child th,
+.rd-times-table tr:last-child td {
+  border-bottom: none;
+}
+.rd-times-stop {
+  position: sticky;
+  left: 0;
+  background: var(--surface);
+  font-weight: 600;
+  color: var(--text-on-surface);
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rd-times-table td {
+  color: var(--text-on-surface-muted);
+}
+.rd-times-next {
+  background: var(--surface-tint);
+  color: var(--text-on-surface);
+  font-weight: 700;
+  border-radius: var(--radius-sm);
+}

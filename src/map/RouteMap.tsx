@@ -116,6 +116,21 @@ export function RouteMap({
               "circle-stroke-width": 2,
             },
           });
+          // Click a stop to see its name.
+          m.on("mouseenter", "stop-dots", () => {
+            m.getCanvas().style.cursor = "pointer";
+          });
+          m.on("mouseleave", "stop-dots", () => {
+            m.getCanvas().style.cursor = "";
+          });
+          m.on("click", "stop-dots", (e) => {
+            const f = e.features?.[0];
+            if (!f || f.geometry.type !== "Point") return;
+            new maplibregl.Popup({ closeButton: true, closeOnClick: true, offset: 12 })
+              .setLngLat(f.geometry.coordinates as [number, number])
+              .setText(String(f.properties?.name ?? ""))
+              .addTo(m);
+          });
         }
         const b = new maplibregl.LngLatBounds();
         path.forEach((c) => b.extend(c));

@@ -624,6 +624,95 @@ async function main() {
     routeRegion.set(route.routeId, ro && ro === rd ? ro : null);
   }
 
+  // ---- route-times.json (per-stop schedule table for the Browse "Times" view) ----
+  // Scoped to the same representative pattern/direction the "Stops" view above
+  // already shows (its own repTi, recomputed here for that route) so a
+  // route's stop list and its times line up — not a full per-direction picker,
+  // which isn't part of any existing Browse UI concept.
+  interface RouteTimesTrip {
+    weekend: boolean;
+    times: (string | null)[];
+  }
+  interface RouteTimesEntry {
+    stops: { stopId: string; name: string }[];
+    trips: RouteTimesTrip[];
+  }
+  const routeTimes: Record<string, RouteTimesEntry> = {};
+
+  for (let ri = 0; ri < nRoutes; ri++) {
+    const route = routesJson[ri];
+    if (!browseRoutes[route.routeId]) continue;
+    const allTripIdxs: number[] = [];
+    for (let ti = 0; ti < nTrips; ti++) if (tRoute[ti] === ri) allTripIdxs.push(ti);
+
+    let repTi = allTripIdxs[0];
+    let repLen = stByTrip.get(repTi)?.length ?? 0;
+    for (const ti of allTripIdxs) {
+      const len = stByTrip.get(ti)?.length ?? 0;
+      if (len > repLen) {
+        repLen = len;
+        repTi = ti;
+      }
+    }
+    const repRows = (stByTrip.get(repTi) ?? []).slice().sort((a, b) => +a.stop_sequence - +b.stop_sequence);
+    if (repRows.length < 2) continue;
+    const repStopIds = repRows.map((r) => r.stop_id);
+    const stops = repStopIds
+      .map((id) => stopRowById.get(id))
+      .filter((s): s is Row => !!s)
+      .map((s) => ({ stopId: s.stop_id, name: s.stop_name }));
+    if (stops.length < 2) continue;
+
+    const repDirection = tDirection[repTi];
+    const sameDirTripIdxs = allTripIdxs.filter((ti) => tDirection[ti] === repDirection);
+
+    const trips: (RouteTimesTrip & { sortSec: number })[] = [];
+    for (const weekend of [false, true]) {
+      // representative sample day = the one (of this weekday/weekend kind)
+      // with the most active trips — same selection rule as serviceWindow()
+      let bestActive: number[] = [];
+      for (const s of sampleDays) {
+        if (s.weekend !== weekend) continue;
+        const active = sameDirTripIdxs.filter((ti) => serviceActiveOnDay(tService[ti], s.epochDay));
+        if (active.length > bestActive.length) bestActive = active;
+      }
+      for (const ti of bestActive) {
+        const rows = stByTrip.get(ti);
+        if (!rows?.length) continue;
+        const bySeq = rows.slice().sort((a, b) => +a.stop_sequence - +b.stop_sequence);
+        // raw (un-wrapped) seconds for chronological sort — a late-night
+        // trip past 24:00:00 must still sort after, not before, evening
+        // trips; display times are wrapped via fmtClock same as elsewhere.
+        const sortSec = gtfsTimeToSeconds(bySeq[0].departure_time || bySeq[0].arrival_time);
+        // A loop/circuit route can revisit the same stop_id more than once
+        // (the representative pattern's own `repStopIds` reflects that, e.g.
+        // a hotel-circuit line stopping at "Estrada Monumental" 7 times) — a
+        // flat id->time map would collapse repeats to the last visit and
+        // mangle the order. Match same-id repeats occurrence by occurrence
+        // instead, so each slot in `repStopIds` gets its own visit's time.
+        const bucket = new Map<string, number[]>();
+        for (const r of bySeq) {
+          const sec = gtfsTimeToSeconds(r.departure_time || r.arrival_time);
+          (bucket.get(r.stop_id) ?? bucket.set(r.stop_id, []).get(r.stop_id)!).push(sec);
+        }
+        const cursor = new Map<string, number>();
+        const times = repStopIds.map((id) => {
+          const secs = bucket.get(id);
+          if (!secs) return null;
+          const i = cursor.get(id) ?? 0;
+          cursor.set(id, i + 1);
+          return secs[i] !== undefined ? fmtClock(secs[i]) : null;
+        });
+        trips.push({ weekend, times, sortSec });
+      }
+    }
+    trips.sort((a, b) => (a.weekend === b.weekend ? a.sortSec - b.sortSec : a.weekend ? 1 : -1));
+    routeTimes[route.routeId] = {
+      stops,
+      trips: trips.map(({ weekend, times }) => ({ weekend, times })),
+    };
+  }
+
   const sortRouteIds = (ids: string[]): string[] =>
     ids.slice().sort((a, b) => {
       const na = parseInt(browseRoutes[a].shortName, 10);
@@ -687,6 +776,7 @@ async function main() {
   writeJson("shapes.json", shapesJson);
   writeJson("route-shapes.json", routeShapeId);
   writeJson("browse.json", browseJson);
+  writeJson("route-times.json", routeTimes);
   writeJson("meta.json", {
     feedVersion,
     feedStartDate,
