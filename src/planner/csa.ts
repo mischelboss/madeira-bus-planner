@@ -348,6 +348,32 @@ function firstTransit(legs: RawLeg[]): Extract<RawLeg, { mode: "transit" }> | nu
   return null;
 }
 
+/** True when `a` gives the rider strictly more free time before leaving (a
+ *  same-or-later departure), a same-or-earlier arrival, and no more
+ *  transfers than `b`, with at least one of the three strictly better —
+ *  i.e. `b` is a pointless detour (an earlier departure and/or an extra
+ *  transfer that buys nothing: not an earlier arrival) not worth showing
+ *  once `a` is already in hand.
+ *
+ *  All three axes matter, not just arrival+transfers: two direct runs of
+ *  the same route an hour apart both depart AND arrive later as a pair —
+ *  neither "dominates" the other, they're genuinely different options for
+ *  when the rider can leave. What actually marks an itinerary as a
+ *  pointless detour is departing earlier (or transferring more) for *no*
+ *  improvement in when you arrive. Walk time is deliberately not an axis
+ *  here: more walking for fewer transfers is a normal, often-preferred
+ *  trade, not a dominated one. */
+function dominates(a: RawItinerary, b: RawItinerary): boolean {
+  return (
+    a.departEpochSec >= b.departEpochSec &&
+    a.arriveEpochSec <= b.arriveEpochSec &&
+    a.transferCount <= b.transferCount &&
+    (a.departEpochSec > b.departEpochSec ||
+      a.arriveEpochSec < b.arriveEpochSec ||
+      a.transferCount < b.transferCount)
+  );
+}
+
 function computeIsLastTripToday(ctx: Ctx, legs: RawLeg[]): boolean {
   const ft = firstTransit(legs);
   if (!ft) return false;
@@ -414,7 +440,19 @@ export function search(
       .join("|");
     if (!seen.has(sig)) {
       seen.add(sig);
-      out.push(j);
+      // Drop this candidate if it's a pointless detour next to an
+      // itinerary already kept (see dominates()) — and check both
+      // directions: a later `departAfter` iteration isn't guaranteed to
+      // find a itinerary that's worse-or-equal on every axis than an
+      // earlier one (e.g. a shorter connecting walk can pull its overall
+      // departEpochSec earlier again), so a newly found itinerary can
+      // just as well retroactively obsolete one already kept.
+      if (!out.some((existing) => dominates(existing, j))) {
+        for (let i = out.length - 1; i >= 0; i--) {
+          if (dominates(j, out[i])) out.splice(i, 1);
+        }
+        out.push(j);
+      }
     }
     departAfter = firstDep + 60;
   }
