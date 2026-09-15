@@ -136,6 +136,32 @@ describe("LocalPlanner (real data)", () => {
     expect(new Set(signatures).size).toBe(signatures.length);
   });
 
+  it("walks the last stretch to a pinned destination stop instead of forcing an extra transfer, when a nearby stop is already on the route", async () => {
+    const { LocalPlanner } = await import("./LocalPlanner.ts");
+    const stops = readJson("stops.json") as { stopId: string; name: string }[];
+    const from = stops.find((s) => s.name === "Avenida do Mar")!;
+    const to = stops.find((s) => s.stopId === "stop-calheta-d379fe")!;
+    expect(from && to).toBeTruthy();
+
+    const p = new LocalPlanner();
+    await p.ready();
+    // A Saturday RODOESTE 380 passes ~380m from the exact "Calheta" stop
+    // (at "Vila da Calheta") with no foot-transfer edge between the two in
+    // the packed timetable — before the endpoint-anchor fix, pinning
+    // "Calheta" as the destination found nothing in the normal search
+    // window (it fell through to a days-later detour); the planner can now
+    // treat the nearby stop as an additional, walk-penalized target.
+    const res = await p.plan({
+      from: { kind: "stop", stopId: from.stopId },
+      to: { kind: "stop", stopId: to.stopId },
+      departAt: "2026-09-19T09:14:00+01:00",
+    });
+
+    expect(res.outcome).toBe("ok");
+    expect(res.itineraries.length).toBeGreaterThan(0);
+    expect(res.itineraries[0].durationSeconds).toBeLessThan(4 * 3600);
+  });
+
   it("flags a date beyond the published horizon", async () => {
     const { LocalPlanner } = await import("./LocalPlanner.ts");
     const stops = readJson("stops.json") as { stopId: string; name: string }[];
