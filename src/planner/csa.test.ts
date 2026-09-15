@@ -223,4 +223,42 @@ describe("CSA", () => {
       baseD + h(11),
     ]);
   });
+
+  it("drops a dominated itinerary — an earlier departure and an extra transfer that buy no earlier arrival", () => {
+    // Reported bug shape: a rider can either board a shuttle (A->B) then
+    // transfer onto a second trip at B, or just wait and board a direct
+    // A->D trip later — both land at the identical instant, so the
+    // earlier-departing, extra-transfer option is a pure detour.
+    const tt = buildFixture([
+      { route: 0, service: 0, direction: 0, stops: [[A, h(9)], [B, h(9.1)]] }, // shuttle
+      { route: 1, service: 0, direction: 0, stops: [[B, h(9.15)], [D, h(10)]] }, // continuation
+      { route: 2, service: 0, direction: 0, stops: [[A, h(9.5)], [D, h(10)]] }, // direct, later
+    ]);
+    const r = search(tt, buildTripConns(tt), req({}));
+    // earliestArrival finds the shuttle+transfer path first (it's reachable
+    // from the initial departAfter), so this also exercises retroactively
+    // removing an already-kept itinerary once the better one is found —
+    // not just skipping a dominated candidate on arrival.
+    expect(r.itineraries).toHaveLength(1);
+    expect(r.itineraries[0].transferCount).toBe(0);
+    expect(r.itineraries[0].departEpochSec).toBe(baseD + h(9.5));
+    expect(r.itineraries[0].arriveEpochSec).toBe(baseD + h(10));
+  });
+
+  it("keeps a later, extra-transfer itinerary that isn't actually dominated — it departs later too", () => {
+    // Same arrival and one more transfer than the direct trip, but it also
+    // departs later — a real, later-leaving alternative, not a detour.
+    // (An arrival+transfers-only dominance rule would wrongly drop this.)
+    const tt = buildFixture([
+      { route: 0, service: 0, direction: 0, stops: [[A, h(9.5)], [D, h(10)]] }, // direct
+      { route: 1, service: 0, direction: 0, stops: [[A, h(9.6)], [B, h(9.65)]] },
+      { route: 2, service: 0, direction: 0, stops: [[B, h(9.7)], [D, h(10)]] }, // transfer, same arrival
+    ]);
+    const r = search(tt, buildTripConns(tt), req({}));
+    expect(r.itineraries).toHaveLength(2);
+    expect(r.itineraries.map((j) => ({ transfers: j.transferCount, dep: j.departEpochSec - baseD }))).toEqual([
+      { transfers: 0, dep: h(9.5) },
+      { transfers: 1, dep: h(9.6) },
+    ]);
+  });
 });
