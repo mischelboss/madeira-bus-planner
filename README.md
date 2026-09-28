@@ -14,6 +14,10 @@ hours, the full stop list, and a route map).
 Consumes the GTFS feed produced by
 [`madeira-gtfs`](https://github.com/mischelboss/madeira-gtfs).
 
+New here? [`docs/how-it-works.md`](./docs/how-it-works.md) explains the
+problem, how the feed becomes an in-browser timetable, the routing
+algorithm, and the edge states, in plain language.
+
 ## How it works
 
 - **Client-side routing.** `scripts/build-data.ts` packs the feed into
