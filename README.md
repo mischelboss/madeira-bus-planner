@@ -30,6 +30,10 @@ so a single search can combine lines from different companies.
   connection.
 - **No accounts, no tracking, no backend.** Everything runs in your browser.
 
+New here? [`docs/how-it-works.md`](./docs/how-it-works.md) explains the
+problem, how the feed becomes an in-browser timetable, the routing
+algorithm, and the edge states, in plain language.
+
 ## How it works
 
 - **Client-side routing.** The timetable is packed at build time into a compact
