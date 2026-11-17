@@ -1,7 +1,14 @@
 {
   "name": "madeira-bus-planner",
+  "description": "A mobile-first journey planner for Madeira's buses — all operators, one timetable, routing in the browser.",
   "private": true,
   "version": "0.0.0",
+  "license": "MIT",
+  "homepage": "https://mischelboss.github.io/madeira-bus-planner/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mischelboss/madeira-bus-planner.git"
+  },
   "type": "module",
   "scripts": {
     "dev": "vite",

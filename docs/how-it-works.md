@@ -28,14 +28,15 @@ from Funchal to Porto Moniz?" or "is there still a bus back from Machico
 tonight?". You had to find the right PDFs, read them, and work out the
 connections yourself.
 
-The sister project
-[madeira-gtfs](https://github.com/mischelboss/madeira-gtfs) solves the
-data half. It turns the PDFs and the HF feed into a single island-wide
-[GTFS](https://gtfs.org) feed; its
-[`docs/how-it-works.md`](https://github.com/mischelboss/madeira-gtfs/blob/main/docs/how-it-works.md)
-explains how. A GTFS file on its own still doesn't help someone standing
-at a bus stop, though. This repo is the rider-facing half: a journey
-planner built on that feed.
+A companion project, `madeira-gtfs`, solves the data half. It turns the
+PDFs and the HF feed into a single island-wide [GTFS](https://gtfs.org)
+feed. A GTFS file on its own still doesn't help someone standing at a bus
+stop, though. This repo is the rider-facing half: a journey planner built
+on that feed.
+
+The timetable data belongs to the operators and the authority that
+publishes it, and this project is unofficial. See
+[Data and disclaimer](../README.md#data-and-disclaimer) in the README.
 
 ## 2. The approach
 
@@ -84,8 +85,10 @@ flowchart LR
 4. Merging to `main` runs `deploy.yml`, which runs the tests, builds, and
    deploys to GitHub Pages.
 
-`madeira-gtfs` is a private repo, so the fetch authenticates with a
-`GTFS_REPO_TOKEN` secret (see the README and `src/lib/fetchFeed.ts`).
+The `madeira-gtfs` repository is not public, so the scheduled fetch
+authenticates with a read-only `GTFS_REPO_TOKEN` repository secret (see
+`src/lib/fetchFeed.ts`). Nobody needs it to run or build the app, because
+the packed data is committed in `public/data/`.
 
 ## 4. Build time: packing the feed
 
@@ -291,9 +294,7 @@ tiles are cached on first use instead of up front.
 
 - **The planner is only as complete as the feed.** Some SIGA lines
   aren't in the feed yet: unsupported PDF layouts, unreadable PDFs, or
-  stops that still need coordinates. madeira-gtfs's
-  [`docs/coverage-inventory.md`](https://github.com/mischelboss/madeira-gtfs/blob/main/docs/coverage-inventory.md)
-  tracks them.
+  stops that still need coordinates.
 - **Some arrival times are estimates.** For lines whose PDFs give only
   departure times at each end, the feed estimates arrival times from
   distance and marks them as approximate.

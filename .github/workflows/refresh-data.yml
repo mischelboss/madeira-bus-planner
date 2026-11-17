@@ -34,6 +34,9 @@ jobs:
       # incremental — only newly-added stops are geocoded (rate-limited to ~1/s)
       - name: Geocode new stops
         run: npm run geocode
+        env:
+          # optional contact for Nominatim's User-Agent (repository variable, not public)
+          NOMINATIM_CONTACT: ${{ vars.NOMINATIM_CONTACT }}
         continue-on-error: true
 
       - name: Rebuild with any new towns

@@ -1,5 +1,5 @@
-/* Design tokens — verbatim from the Claude Design handoff §"Design Tokens".
-   Do not tweak values without a matching design change. */
+/* Design tokens for the app theme (botanic greens, operator colours, banners).
+   Change values together with the matching design change. */
 :root {
   /* Backgrounds */
   --bg-page: oklch(14% 0.025 150); /* deep botanic green — outer wrapper */
@@ -39,7 +39,7 @@
   --badge-lasttrip-bg: oklch(65% 0.16 40);
 
   /* Operator / flower badges — bg / fg pairs.
-     Handoff gives HF pink, RODOESTE(RW) orange, SAM/CAM yellow; AEROBUS gets a
+     HF is pink, RODOESTE (RW) orange, SAM/CAM yellow; AEROBUS gets a
      4th distinct botanic hue (jacaranda violet). */
   --op-hf-bg: oklch(89% 0.13 340);
   --op-hf-fg: oklch(36% 0.15 340);

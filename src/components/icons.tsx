@@ -1,4 +1,4 @@
-/** Inline SVG icons — the handoff ships no image assets. */
+/** Inline SVG icons — the app ships no image assets. */
 type P = { size?: number; className?: string };
 
 export const LocateIcon = ({ size = 18, className }: P) => (

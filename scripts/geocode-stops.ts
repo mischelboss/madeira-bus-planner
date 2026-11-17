@@ -13,7 +13,7 @@
  * das Comunidades Madeirenses". That is what makes a readable display name
  * possible without anyone inventing one (see build-data.ts's displayName).
  *
- * Mirrors madeira-gtfs/scripts/geocode_stops.py conventions.
+ * Set NOMINATIM_CONTACT (e-mail or URL) to add a contact to the User-Agent.
  */
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import { resolve, dirname } from "node:path";
@@ -24,7 +24,10 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const SNAPSHOT = resolve(ROOT, "data/feed-snapshot/latest.zip");
 const CACHE = resolve(ROOT, "data/geocode-cache.json");
 
-const UA = "madeira-bus-planner build (github.com/mischelboss/madeira-bus-planner; mischel.boss@gmail.com)";
+// Nominatim's usage policy asks for an identifying User-Agent. NOMINATIM_CONTACT
+// (an e-mail or URL) is appended when set, so a contact never has to live in the repo.
+const CONTACT = process.env.NOMINATIM_CONTACT?.trim();
+const UA = `madeira-bus-planner build (https://github.com/mischelboss/madeira-bus-planner${CONTACT ? `; ${CONTACT}` : ""})`;
 const ENDPOINT = "https://nominatim.openstreetmap.org/reverse";
 const SPACING_MS = 1100;
 const REFRESH_DAYS = 180;

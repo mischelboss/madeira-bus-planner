@@ -151,15 +151,25 @@ describe("LocalPlanner (real data)", () => {
     // "Calheta" as the destination found nothing in the normal search
     // window (it fell through to a days-later detour); the planner can now
     // treat the nearby stop as an additional, walk-penalized target.
-    const res = await p.plan({
-      from: { kind: "stop", stopId: from.stopId },
-      to: { kind: "stop", stopId: to.stopId },
-      departAt: "2026-09-19T09:14:00+01:00",
-    });
+    //
+    // Pin "now" to just before the requested time: a requested time in the
+    // past is shifted to the real current time, which would make this test
+    // depend on when it runs.
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-09-19T08:00:00+01:00"));
+    try {
+      const res = await p.plan({
+        from: { kind: "stop", stopId: from.stopId },
+        to: { kind: "stop", stopId: to.stopId },
+        departAt: "2026-09-19T09:14:00+01:00",
+      });
 
-    expect(res.outcome).toBe("ok");
-    expect(res.itineraries.length).toBeGreaterThan(0);
-    expect(res.itineraries[0].durationSeconds).toBeLessThan(4 * 3600);
+      expect(res.outcome).toBe("ok");
+      expect(res.itineraries.length).toBeGreaterThan(0);
+      expect(res.itineraries[0].durationSeconds).toBeLessThan(4 * 3600);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("flags a date beyond the published horizon", async () => {
