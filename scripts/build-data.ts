@@ -1,8 +1,8 @@
 /**
  * GTFS feed  ->  public/data/*   (routing blob + UI JSON)
  *
- *   npm run build:data            # from the committed snapshot
- *   npm run build:data -- --url https://.../latest.zip
+ *   npm run build:data            # from data/feed-snapshot/latest.zip if present, else the default feed URL
+ *   npm run build:data -- --url https://.../latest.zip   # or a local path to a GTFS zip
  *
  * Deterministic: same feed + same geocode cache => identical output => no git
  * diff. Reverse-geocoding is a separate step (scripts/geocode-stops.ts) whose
@@ -125,9 +125,10 @@ async function main() {
 
   let zipPath = src;
   if (/^https?:/.test(src)) {
-    // madeira-gtfs is a private repo; GTFS_REPO_TOKEN (a PAT with Contents:Read
-    // on it) lets this resolve the release asset via the GitHub API instead of
-    // the plain download URL, which 404s for a private repo regardless of auth.
+    // The default feed lives in a private repo. GTFS_REPO_TOKEN (a token with
+    // Contents:Read on it) lets this resolve the release asset via the GitHub
+    // API instead of the plain download URL, which 404s for a private repo
+    // regardless of auth. Public URLs and local zips need no token.
     const buf = await fetchFeedZip(src, { token: process.env.GTFS_REPO_TOKEN });
     zipPath = resolve(ROOT, "data/feed-snapshot/latest.zip");
     mkdirSync(dirname(zipPath), { recursive: true });

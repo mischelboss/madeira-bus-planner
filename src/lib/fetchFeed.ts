@@ -1,15 +1,17 @@
 /**
- * Fetches the published GTFS zip, authenticating when it's a GitHub release
- * asset on a private repo.
+ * Fetches a GTFS zip, authenticating when it's a GitHub release asset on a
+ * private repository.
  *
- * `madeira-gtfs` stays private (the user's call — the feed itself is public
- * via this fetch, the source repo isn't). A plain `fetch()` against
+ * A plain `fetch()` against
  * `github.com/<owner>/<repo>/releases/download/<tag>/<asset>` 404s for a
  * private repo even with an `Authorization` header — that URL doesn't accept
  * one. The documented way in: resolve the release via the API (which does
  * accept a token), find the asset's id, then fetch *that* asset URL with
  * `Accept: application/octet-stream` — GitHub streams the binary back (or
  * redirects to a signed one-time URL, which `fetch` follows transparently).
+ *
+ * Without a token, or for any URL that isn't a GitHub release download, this
+ * is a plain `fetch()`.
  */
 
 const RELEASE_DOWNLOAD_RE =

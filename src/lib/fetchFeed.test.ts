@@ -22,7 +22,7 @@ describe("fetchFeedZip", () => {
     const fetchMock = vi.fn().mockResolvedValue({ ok: true, arrayBuffer: async () => body.buffer });
     vi.stubGlobal("fetch", fetchMock);
 
-    await fetchFeedZip("https://example.com/feed.zip", { token: "shh" });
+    await fetchFeedZip("https://example.com/feed.zip", { token: "test-token" });
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock).toHaveBeenCalledWith("https://example.com/feed.zip");
@@ -46,13 +46,13 @@ describe("fetchFeedZip", () => {
     });
     vi.stubGlobal("fetch", fetchMock);
 
-    const buf = await fetchFeedZip(RELEASE_URL, { token: "s3cr3t" });
+    const buf = await fetchFeedZip(RELEASE_URL, { token: "test-token" });
 
     expect([...buf]).toEqual([7, 7, 7]);
     expect(calls[0].url).toBe(
       "https://api.github.com/repos/mischelboss/madeira-gtfs/releases/tags/latest",
     );
-    expect(calls[0].headers?.Authorization).toBe("Bearer s3cr3t");
+    expect(calls[0].headers?.Authorization).toBe("Bearer test-token");
     expect(calls[1].url).toBe("https://api.github.com/repos/mischelboss/madeira-gtfs/releases/assets/555");
     expect(calls[1].headers?.Accept).toBe("application/octet-stream");
   });
